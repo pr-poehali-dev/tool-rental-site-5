@@ -17,16 +17,48 @@ interface CartItem {
   days: number;
 }
 
+const IMG = {
+  drill: 'https://cdn.poehali.dev/projects/54519bd3-e88c-4417-805a-70dc3963c609/files/dc116c46-331e-43e1-ac01-462744f172c0.jpg',
+  mixer: 'https://cdn.poehali.dev/projects/54519bd3-e88c-4417-805a-70dc3963c609/files/7b409794-890b-494a-8624-a9309ec32f1b.jpg',
+  grinder: 'https://cdn.poehali.dev/projects/54519bd3-e88c-4417-805a-70dc3963c609/files/1ca7c606-58d3-4ecd-a696-8f446449af65.jpg',
+  driver: 'https://cdn.poehali.dev/projects/54519bd3-e88c-4417-805a-70dc3963c609/files/5637a7f2-496e-4648-94cc-fe68d32513c1.jpg',
+  hand: 'https://cdn.poehali.dev/projects/54519bd3-e88c-4417-805a-70dc3963c609/files/8d312030-f430-4dd2-99b0-69b395fff043.jpg',
+  bit: 'https://cdn.poehali.dev/projects/54519bd3-e88c-4417-805a-70dc3963c609/files/5ae8ce7c-45fe-4d3a-97da-2edb6d6ca946.jpg',
+};
+
 const TOOLS: Tool[] = [
-  { id: 1, name: 'Перфоратор Bosch', category: 'Бурение', price: 650, image: 'https://cdn.poehali.dev/projects/54519bd3-e88c-4417-805a-70dc3963c609/files/dc116c46-331e-43e1-ac01-462744f172c0.jpg' },
-  { id: 2, name: 'Бетономешалка 180л', category: 'Бетон', price: 900, image: 'https://cdn.poehali.dev/projects/54519bd3-e88c-4417-805a-70dc3963c609/files/7b409794-890b-494a-8624-a9309ec32f1b.jpg' },
-  { id: 3, name: 'УШМ Болгарка 230мм', category: 'Резка', price: 400, image: 'https://cdn.poehali.dev/projects/54519bd3-e88c-4417-805a-70dc3963c609/files/1ca7c606-58d3-4ecd-a696-8f446449af65.jpg' },
-  { id: 4, name: 'Перфоратор Makita', category: 'Бурение', price: 700, image: 'https://cdn.poehali.dev/projects/54519bd3-e88c-4417-805a-70dc3963c609/files/dc116c46-331e-43e1-ac01-462744f172c0.jpg' },
-  { id: 5, name: 'Бетономешалка 120л', category: 'Бетон', price: 750, image: 'https://cdn.poehali.dev/projects/54519bd3-e88c-4417-805a-70dc3963c609/files/7b409794-890b-494a-8624-a9309ec32f1b.jpg' },
-  { id: 6, name: 'УШМ Профи 125мм', category: 'Резка', price: 350, image: 'https://cdn.poehali.dev/projects/54519bd3-e88c-4417-805a-70dc3963c609/files/1ca7c606-58d3-4ecd-a696-8f446449af65.jpg' },
+  { id: 1, name: 'Перфоратор Bosch', category: 'Электроинструмент', price: 650, image: IMG.drill },
+  { id: 2, name: 'Бетономешалка 180л', category: 'Электроинструмент', price: 900, image: IMG.mixer },
+  { id: 3, name: 'УШМ Болгарка 230мм', category: 'Электроинструмент', price: 400, image: IMG.grinder },
+
+  { id: 4, name: 'Шуруповёрт Hanskonner HCD18165BLI', category: 'Электроинструмент', price: 450, image: IMG.driver },
+  { id: 5, name: 'Точило Р.И.Т PBG75 160Вт', category: 'Электроинструмент', price: 300, image: IMG.grinder },
+  { id: 6, name: 'Шуруповёрт Hanskonner HCD2065BLC', category: 'Электроинструмент', price: 420, image: IMG.driver },
+  { id: 7, name: 'Отвёртка Sturm CD3404U2 3.6В', category: 'Электроинструмент', price: 200, image: IMG.driver },
+  { id: 8, name: 'УШМ Hanskonner HAG24230ECH 2400Вт', category: 'Электроинструмент', price: 550, image: IMG.grinder },
+
+  { id: 9, name: 'Бокорезы диэлектрические Matrix 180мм', category: 'Ручной инструмент', price: 120, image: IMG.hand },
+  { id: 10, name: 'Пассатижи силовые FIT 200мм', category: 'Ручной инструмент', price: 100, image: IMG.hand },
+  { id: 11, name: 'Струбцина Dorn Pro 300мм', category: 'Ручной инструмент', price: 90, image: IMG.hand },
+  { id: 12, name: 'Угольник магнитный Foxweld FIX-5Pro', category: 'Ручной инструмент', price: 80, image: IMG.hand },
+
+  { id: 13, name: 'Ножницы кабельные EKF НКИ-12 1000В', category: 'Электромонтаж', price: 150, image: IMG.hand },
+  { id: 14, name: 'Нож монтёрский Rexant с пяткой', category: 'Электромонтаж', price: 70, image: IMG.hand },
+  { id: 15, name: 'Стриппер-обжимник КВТ WS-11', category: 'Электромонтаж', price: 180, image: IMG.hand },
+  { id: 16, name: 'Паяльник Rexant ЭПСН 40Вт', category: 'Электромонтаж', price: 110, image: IMG.hand },
+
+  { id: 17, name: 'Коронка по бетону SDS-Plus 120мм', category: 'Оснастка', price: 160, image: IMG.bit },
+  { id: 18, name: 'Алмазная чашка Matrix Turbo 180мм', category: 'Оснастка', price: 140, image: IMG.bit },
+  { id: 19, name: 'Алмазная чашка Matrix 125мм', category: 'Оснастка', price: 120, image: IMG.bit },
+
+  { id: 20, name: 'Триммер бензиновый Dorn Pro TT-S50', category: 'Сад и техника', price: 800, image: IMG.mixer },
+
+  { id: 21, name: 'Щиток лицевой Denzel NS-01 с сеткой', category: 'Экипировка', price: 90, image: IMG.hand },
+  { id: 22, name: 'Крепление для нивелира Condtrol Wall Mount Pro', category: 'Экипировка', price: 130, image: IMG.hand },
+  { id: 23, name: 'Фонарь налобный Kodak 5Вт IP65', category: 'Экипировка', price: 100, image: IMG.hand },
 ];
 
-const CATEGORIES = ['Все', 'Бурение', 'Бетон', 'Резка'];
+const CATEGORIES = ['Все', 'Электроинструмент', 'Ручной инструмент', 'Электромонтаж', 'Оснастка', 'Сад и техника', 'Экипировка'];
 
 const NAV = [
   { label: 'Главная', id: 'hero' },
