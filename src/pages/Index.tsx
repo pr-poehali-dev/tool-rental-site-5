@@ -10,11 +10,14 @@ interface Tool {
   category: string;
   price: number;
   image: string;
+  stock: number;      // сейчас в наличии
+  totalStock: number; // всего у склада
 }
 
 interface CartItem {
   tool: Tool;
   days: number;
+  qty: number;
 }
 
 const IMG = {
@@ -27,35 +30,35 @@ const IMG = {
 };
 
 const TOOLS: Tool[] = [
-  { id: 1, name: 'Перфоратор Bosch', category: 'Электроинструмент', price: 650, image: IMG.drill },
-  { id: 2, name: 'Бетономешалка 180л', category: 'Электроинструмент', price: 900, image: IMG.mixer },
-  { id: 3, name: 'УШМ Болгарка 230мм', category: 'Электроинструмент', price: 400, image: IMG.grinder },
+  { id: 1, name: 'Перфоратор Bosch', category: 'Электроинструмент', price: 650, image: IMG.drill, stock: 2, totalStock: 4 },
+  { id: 2, name: 'Бетономешалка 180л', category: 'Электроинструмент', price: 900, image: IMG.mixer, stock: 1, totalStock: 2 },
+  { id: 3, name: 'УШМ Болгарка 230мм', category: 'Электроинструмент', price: 400, image: IMG.grinder, stock: 4, totalStock: 6 },
 
-  { id: 4, name: 'Шуруповёрт Hanskonner HCD18165BLI', category: 'Электроинструмент', price: 450, image: IMG.driver },
-  { id: 5, name: 'Точило Р.И.Т PBG75 160Вт', category: 'Электроинструмент', price: 300, image: IMG.grinder },
-  { id: 6, name: 'Шуруповёрт Hanskonner HCD2065BLC', category: 'Электроинструмент', price: 420, image: IMG.driver },
-  { id: 7, name: 'Отвёртка Sturm CD3404U2 3.6В', category: 'Электроинструмент', price: 200, image: IMG.driver },
-  { id: 8, name: 'УШМ Hanskonner HAG24230ECH 2400Вт', category: 'Электроинструмент', price: 550, image: IMG.grinder },
+  { id: 4, name: 'Шуруповёрт Hanskonner HCD18165BLI', category: 'Электроинструмент', price: 450, image: IMG.driver, stock: 3, totalStock: 5 },
+  { id: 5, name: 'Точило Р.И.Т PBG75 160Вт', category: 'Электроинструмент', price: 300, image: IMG.grinder, stock: 1, totalStock: 2 },
+  { id: 6, name: 'Шуруповёрт Hanskonner HCD2065BLC', category: 'Электроинструмент', price: 420, image: IMG.driver, stock: 2, totalStock: 4 },
+  { id: 7, name: 'Отвёртка Sturm CD3404U2 3.6В', category: 'Электроинструмент', price: 200, image: IMG.driver, stock: 5, totalStock: 8 },
+  { id: 8, name: 'УШМ Hanskonner HAG24230ECH 2400Вт', category: 'Электроинструмент', price: 550, image: IMG.grinder, stock: 2, totalStock: 3 },
 
-  { id: 9, name: 'Бокорезы диэлектрические Matrix 180мм', category: 'Ручной инструмент', price: 120, image: IMG.hand },
-  { id: 10, name: 'Пассатижи силовые FIT 200мм', category: 'Ручной инструмент', price: 100, image: IMG.hand },
-  { id: 11, name: 'Струбцина Dorn Pro 300мм', category: 'Ручной инструмент', price: 90, image: IMG.hand },
-  { id: 12, name: 'Угольник магнитный Foxweld FIX-5Pro', category: 'Ручной инструмент', price: 80, image: IMG.hand },
+  { id: 9, name: 'Бокорезы диэлектрические Matrix 180мм', category: 'Ручной инструмент', price: 120, image: IMG.hand, stock: 6, totalStock: 10 },
+  { id: 10, name: 'Пассатижи силовые FIT 200мм', category: 'Ручной инструмент', price: 100, image: IMG.hand, stock: 4, totalStock: 8 },
+  { id: 11, name: 'Струбцина Dorn Pro 300мм', category: 'Ручной инструмент', price: 90, image: IMG.hand, stock: 3, totalStock: 6 },
+  { id: 12, name: 'Угольник магнитный Foxweld FIX-5Pro', category: 'Ручной инструмент', price: 80, image: IMG.hand, stock: 4, totalStock: 6 },
 
-  { id: 13, name: 'Ножницы кабельные EKF НКИ-12 1000В', category: 'Электромонтаж', price: 150, image: IMG.hand },
-  { id: 14, name: 'Нож монтёрский Rexant с пяткой', category: 'Электромонтаж', price: 70, image: IMG.hand },
-  { id: 15, name: 'Стриппер-обжимник КВТ WS-11', category: 'Электромонтаж', price: 180, image: IMG.hand },
-  { id: 16, name: 'Паяльник Rexant ЭПСН 40Вт', category: 'Электромонтаж', price: 110, image: IMG.hand },
+  { id: 13, name: 'Ножницы кабельные EKF НКИ-12 1000В', category: 'Электромонтаж', price: 150, image: IMG.hand, stock: 3, totalStock: 5 },
+  { id: 14, name: 'Нож монтёрский Rexant с пяткой', category: 'Электромонтаж', price: 70, image: IMG.hand, stock: 7, totalStock: 10 },
+  { id: 15, name: 'Стриппер-обжимник КВТ WS-11', category: 'Электромонтаж', price: 180, image: IMG.hand, stock: 2, totalStock: 4 },
+  { id: 16, name: 'Паяльник Rexant ЭПСН 40Вт', category: 'Электромонтаж', price: 110, image: IMG.hand, stock: 5, totalStock: 8 },
 
-  { id: 17, name: 'Коронка по бетону SDS-Plus 120мм', category: 'Оснастка', price: 160, image: IMG.bit },
-  { id: 18, name: 'Алмазная чашка Matrix Turbo 180мм', category: 'Оснастка', price: 140, image: IMG.bit },
-  { id: 19, name: 'Алмазная чашка Matrix 125мм', category: 'Оснастка', price: 120, image: IMG.bit },
+  { id: 17, name: 'Коронка по бетону SDS-Plus 120мм', category: 'Оснастка', price: 160, image: IMG.bit, stock: 4, totalStock: 7 },
+  { id: 18, name: 'Алмазная чашка Matrix Turbo 180мм', category: 'Оснастка', price: 140, image: IMG.bit, stock: 3, totalStock: 5 },
+  { id: 19, name: 'Алмазная чашка Matrix 125мм', category: 'Оснастка', price: 120, image: IMG.bit, stock: 5, totalStock: 8 },
 
-  { id: 20, name: 'Триммер бензиновый Dorn Pro TT-S50', category: 'Сад и техника', price: 800, image: IMG.mixer },
+  { id: 20, name: 'Триммер бензиновый Dorn Pro TT-S50', category: 'Сад и техника', price: 800, image: IMG.mixer, stock: 1, totalStock: 2 },
 
-  { id: 21, name: 'Щиток лицевой Denzel NS-01 с сеткой', category: 'Экипировка', price: 90, image: IMG.hand },
-  { id: 22, name: 'Крепление для нивелира Condtrol Wall Mount Pro', category: 'Экипировка', price: 130, image: IMG.hand },
-  { id: 23, name: 'Фонарь налобный Kodak 5Вт IP65', category: 'Экипировка', price: 100, image: IMG.hand },
+  { id: 21, name: 'Щиток лицевой Denzel NS-01 с сеткой', category: 'Экипировка', price: 90, image: IMG.hand, stock: 6, totalStock: 10 },
+  { id: 22, name: 'Крепление для нивелира Condtrol Wall Mount Pro', category: 'Экипировка', price: 130, image: IMG.hand, stock: 2, totalStock: 4 },
+  { id: 23, name: 'Фонарь налобный Kodak 5Вт IP65', category: 'Экипировка', price: 100, image: IMG.hand, stock: 4, totalStock: 7 },
 ];
 
 const CATEGORIES = ['Все', 'Электроинструмент', 'Ручной инструмент', 'Электромонтаж', 'Оснастка', 'Сад и техника', 'Экипировка'];
@@ -78,16 +81,19 @@ const Index = () => {
     [activeCat]
   );
 
-  const cartCount = cart.length;
-  const total = cart.reduce((sum, i) => sum + i.tool.price * i.days, 0);
+  const cartCount = cart.reduce((sum, i) => sum + i.qty, 0);
+  const total = cart.reduce((sum, i) => sum + i.tool.price * i.days * i.qty, 0);
 
   const addToCart = (tool: Tool) => {
-    setCart((prev) => (prev.some((i) => i.tool.id === tool.id) ? prev : [...prev, { tool, days: 1 }]));
+    setCart((prev) => (prev.some((i) => i.tool.id === tool.id) ? prev : [...prev, { tool, days: 1, qty: 1 }]));
     setCartOpen(true);
   };
 
   const setDays = (id: number, days: number) =>
     setCart((prev) => prev.map((i) => (i.tool.id === id ? { ...i, days: Math.max(1, days) } : i)));
+
+  const setQty = (id: number, qty: number) =>
+    setCart((prev) => prev.map((i) => (i.tool.id === id ? { ...i, qty: Math.min(Math.max(1, qty), i.tool.stock) } : i)));
 
   const removeItem = (id: number) => setCart((prev) => prev.filter((i) => i.tool.id !== id));
 
@@ -372,33 +378,84 @@ const Index = () => {
             </div>
           ) : (
             <>
-              <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                {cart.map((item) => (
-                  <div key={item.tool.id} className="flex gap-4 pb-4 border-b border-border last:border-0">
-                    <img src={item.tool.image} alt={item.tool.name} className="w-20 h-20 object-cover bg-secondary shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className="font-display font-semibold text-lg leading-tight">{item.tool.name}</h4>
-                        <button onClick={() => removeItem(item.tool.id)} className="text-muted-foreground hover:text-destructive">
-                          <Icon name="X" size={18} />
-                        </button>
+              <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                {cart.map((item) => {
+                  const canAdd = item.qty < item.tool.stock;
+                  const hasMore = item.tool.totalStock > item.tool.stock;
+                  const waitCount = item.tool.totalStock - item.tool.stock;
+
+                  return (
+                    <div key={item.tool.id} className="pb-5 border-b border-border last:border-0">
+                      {/* Шапка позиции */}
+                      <div className="flex gap-3 mb-3">
+                        <img src={item.tool.image} alt={item.tool.name} className="w-16 h-16 object-cover bg-secondary shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <h4 className="font-display font-semibold text-base leading-tight">{item.tool.name}</h4>
+                            <button onClick={() => removeItem(item.tool.id)} className="text-muted-foreground hover:text-destructive shrink-0 mt-0.5">
+                              <Icon name="X" size={16} />
+                            </button>
+                          </div>
+                          <div className="font-body text-sm text-muted-foreground">{item.tool.price} ₽ / сутки / шт</div>
+                        </div>
                       </div>
-                      <div className="font-body text-sm text-muted-foreground mb-2">{item.tool.price} ₽ / сутки</div>
-                      <div className="flex items-center justify-between">
+
+                      {/* Количество штук */}
+                      <div className="mb-2">
+                        <div className="font-body text-xs text-muted-foreground uppercase tracking-wider mb-1.5">Количество</div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center border border-border">
+                            <button
+                              onClick={() => setQty(item.tool.id, item.qty - 1)}
+                              disabled={item.qty <= 1}
+                              className="w-8 h-8 flex items-center justify-center hover:bg-secondary disabled:opacity-30"
+                            >
+                              <Icon name="Minus" size={13} />
+                            </button>
+                            <span className="font-display font-semibold text-base w-8 text-center">{item.qty}</span>
+                            <button
+                              onClick={() => setQty(item.tool.id, item.qty + 1)}
+                              disabled={!canAdd}
+                              className="w-8 h-8 flex items-center justify-center hover:bg-secondary disabled:opacity-30"
+                            >
+                              <Icon name="Plus" size={13} />
+                            </button>
+                          </div>
+                          <span className="font-body text-xs text-muted-foreground">
+                            {canAdd
+                              ? <span className="text-green-700">ещё {item.tool.stock - item.qty} доступно</span>
+                              : <span className="text-amber-600">достигнут лимит в наличии</span>
+                            }
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Подсказка про остаток на складе */}
+                      {item.qty >= item.tool.stock && hasMore && (
+                        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 px-3 py-2 mt-2">
+                          <Icon name="Clock" size={14} className="text-amber-600 mt-0.5 shrink-0" />
+                          <p className="font-body text-xs text-amber-700">
+                            Ещё {waitCount} {waitCount === 1 ? 'шт' : 'шт'} вернутся на склад — уточните дату у менеджера
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Срок аренды + итог */}
+                      <div className="flex items-center justify-between mt-3">
                         <div className="flex items-center border border-border">
                           <button onClick={() => setDays(item.tool.id, item.days - 1)} className="w-8 h-8 flex items-center justify-center hover:bg-secondary">
-                            <Icon name="Minus" size={14} />
+                            <Icon name="Minus" size={13} />
                           </button>
-                          <span className="font-body text-sm w-10 text-center">{item.days} дн</span>
+                          <span className="font-body text-sm w-12 text-center">{item.days} дн</span>
                           <button onClick={() => setDays(item.tool.id, item.days + 1)} className="w-8 h-8 flex items-center justify-center hover:bg-secondary">
-                            <Icon name="Plus" size={14} />
+                            <Icon name="Plus" size={13} />
                           </button>
                         </div>
-                        <span className="font-display font-semibold text-lg">{item.tool.price * item.days} ₽</span>
+                        <span className="font-display font-semibold text-lg">{item.tool.price * item.days * item.qty} ₽</span>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="p-6 border-t border-border bg-secondary">
