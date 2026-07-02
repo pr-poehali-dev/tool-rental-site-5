@@ -32,48 +32,58 @@ interface CartItem {
   qty: number;
 }
 
-const IMG = {
-  drill: 'https://cdn.poehali.dev/projects/54519bd3-e88c-4417-805a-70dc3963c609/files/dc116c46-331e-43e1-ac01-462744f172c0.jpg',
-  mixer: 'https://cdn.poehali.dev/projects/54519bd3-e88c-4417-805a-70dc3963c609/files/7b409794-890b-494a-8624-a9309ec32f1b.jpg',
-  grinder: 'https://cdn.poehali.dev/projects/54519bd3-e88c-4417-805a-70dc3963c609/files/1ca7c606-58d3-4ecd-a696-8f446449af65.jpg',
-  driver: 'https://cdn.poehali.dev/projects/54519bd3-e88c-4417-805a-70dc3963c609/files/5637a7f2-496e-4648-94cc-fe68d32513c1.jpg',
-  hand: 'https://cdn.poehali.dev/projects/54519bd3-e88c-4417-805a-70dc3963c609/files/8d312030-f430-4dd2-99b0-69b395fff043.jpg',
-  bit: 'https://cdn.poehali.dev/projects/54519bd3-e88c-4417-805a-70dc3963c609/files/5ae8ce7c-45fe-4d3a-97da-2edb6d6ca946.jpg',
-};
+const BC = 'https://baucenter.ru/upload/pictures';
+const CDN = 'https://cdn.poehali.dev/projects/54519bd3-e88c-4417-805a-70dc3963c609/files';
 
 const TOOLS: Tool[] = [
-  { id: 1, name: 'Перфоратор Bosch', category: 'Электроинструмент', price: 650, image: IMG.drill, stock: 2, totalStock: 4 },
-  { id: 2, name: 'Бетономешалка 180л', category: 'Электроинструмент', price: 900, image: IMG.mixer, stock: 1, totalStock: 2 },
-  { id: 3, name: 'УШМ Болгарка 230мм', category: 'Электроинструмент', price: 400, image: IMG.grinder, stock: 4, totalStock: 6 },
+  // Электроинструмент
+  { id: 1,  name: 'Шуруповёрт Hanskonner HCD18165BLI ударный 18В',     category: 'Электроинструмент', price: 450, image: `${BC}/70/706000271-0.webp?1739199618`,  stock: 3, totalStock: 5 },
+  { id: 2,  name: 'Точильно-шлифовальный станок P.I.T. PBG75-C 160Вт', category: 'Электроинструмент', price: 300, image: `${BC}/70/706003924-0.webp?1659047997`,  stock: 1, totalStock: 2 },
+  { id: 3,  name: 'Шуруповёрт Hanskonner HCD2065BLC 18В 2×2.0Ач',      category: 'Электроинструмент', price: 420, image: `${BC}/70/706000452-0.webp?1739199623`,  stock: 2, totalStock: 4 },
+  { id: 4,  name: 'Аккумуляторная отвёртка Sturm CD3404U2 3.6В',        category: 'Электроинструмент', price: 200, image: `${BC}/70/706005089-0.webp?1739201453`,  stock: 5, totalStock: 8 },
+  { id: 5,  name: 'УШМ Hanskonner HAG24230ECH 2400Вт 230мм',            category: 'Электроинструмент', price: 550, image: `${BC}/70/706004809-0.webp`,              stock: 2, totalStock: 3 },
+  { id: 6,  name: 'Штроборез Makita SG1251J 1400Вт 125мм',              category: 'Электроинструмент', price: 900, image: `${CDN}/180c91ca-28ee-411c-9817-308ba5035e9b.jpg`, stock: 1, totalStock: 2 },
+  { id: 7,  name: 'Перфоратор DeWalt D25134K SDS-Plus 800Вт',           category: 'Электроинструмент', price: 700, image: `${CDN}/1b7470ec-8508-4340-ba69-798bb25f75d1.jpg`, stock: 2, totalStock: 4 },
+  { id: 8,  name: 'УШМ DeWalt DWE4057 800Вт 125мм',                     category: 'Электроинструмент', price: 400, image: `${CDN}/5637a7f2-496e-4648-94cc-fe68d32513c1.jpg`, stock: 3, totalStock: 5 },
+  { id: 9,  name: 'Лобзик DeWalt DWE349 650Вт',                         category: 'Электроинструмент', price: 500, image: `${CDN}/630db858-3f97-4e31-ac47-7fa5f845ae3e.jpg`, stock: 2, totalStock: 3 },
+  { id: 10, name: 'Миксер строительный INGCO MX214008 1400Вт M14',       category: 'Электроинструмент', price: 350, image: `${CDN}/c9c0905d-0d99-431e-a0eb-a0fa6ded713a.jpg`, stock: 3, totalStock: 6 },
+  { id: 11, name: 'Тепловая пушка Ballu BHP-P/5 5кВт',                  category: 'Электроинструмент', price: 600, image: `${CDN}/809aa387-cb89-4da4-bee4-b9f4db2ea105.jpg`, stock: 2, totalStock: 3 },
+  { id: 12, name: 'Технический фен Metabo H 16-500',                    category: 'Электроинструмент', price: 350, image: `${CDN}/48548722-c1ce-4809-b96c-f45821b82418.jpg`, stock: 2, totalStock: 4 },
+  { id: 13, name: 'Пила торцовочная Practyl J1GZP1210',                  category: 'Электроинструмент', price: 750, image: `${CDN}/671aff69-e46a-40af-b90b-c680e32f0510.jpg`, stock: 1, totalStock: 2 },
+  { id: 14, name: 'Винтоверт ProfiPower MKDTD-18V 18В 2×4.0Ач',         category: 'Электроинструмент', price: 480, image: `${CDN}/80a97bf7-3e92-476f-83a7-e46241d0f32d.jpg`, stock: 2, totalStock: 4 },
 
-  { id: 4, name: 'Шуруповёрт Hanskonner HCD18165BLI', category: 'Электроинструмент', price: 450, image: IMG.driver, stock: 3, totalStock: 5 },
-  { id: 5, name: 'Точило Р.И.Т PBG75 160Вт', category: 'Электроинструмент', price: 300, image: IMG.grinder, stock: 1, totalStock: 2 },
-  { id: 6, name: 'Шуруповёрт Hanskonner HCD2065BLC', category: 'Электроинструмент', price: 420, image: IMG.driver, stock: 2, totalStock: 4 },
-  { id: 7, name: 'Отвёртка Sturm CD3404U2 3.6В', category: 'Электроинструмент', price: 200, image: IMG.driver, stock: 5, totalStock: 8 },
-  { id: 8, name: 'УШМ Hanskonner HAG24230ECH 2400Вт', category: 'Электроинструмент', price: 550, image: IMG.grinder, stock: 2, totalStock: 3 },
+  // Сварка
+  { id: 15, name: 'Сварочный инвертор Resanta САИ-250 10–250А',         category: 'Сварка', price: 800, image: `${CDN}/3eaea528-426d-4b48-9c1f-0b5140dff3db.jpg`, stock: 2, totalStock: 3 },
+  { id: 16, name: 'Сварочный инвертор Resanta САИ-220Д 20–220А',        category: 'Сварка', price: 700, image: `${CDN}/3eaea528-426d-4b48-9c1f-0b5140dff3db.jpg`, stock: 1, totalStock: 2 },
 
-  { id: 9, name: 'Бокорезы диэлектрические Matrix 180мм', category: 'Ручной инструмент', price: 120, image: IMG.hand, stock: 6, totalStock: 10 },
-  { id: 10, name: 'Пассатижи силовые FIT 200мм', category: 'Ручной инструмент', price: 100, image: IMG.hand, stock: 4, totalStock: 8 },
-  { id: 11, name: 'Струбцина Dorn Pro 300мм', category: 'Ручной инструмент', price: 90, image: IMG.hand, stock: 3, totalStock: 6 },
-  { id: 12, name: 'Угольник магнитный Foxweld FIX-5Pro', category: 'Ручной инструмент', price: 80, image: IMG.hand, stock: 4, totalStock: 6 },
+  // Ручной инструмент
+  { id: 17, name: 'Кувалда кованая 4кг деревянная рукоятка',            category: 'Ручной инструмент', price: 80,  image: `${CDN}/78667578-4a52-468d-a204-69179cc5c7d0.jpg`, stock: 5, totalStock: 8 },
+  { id: 18, name: 'Бокорезы Matrix Insulated 180мм диэлектрические',    category: 'Ручной инструмент', price: 120, image: `${BC}/70/705004398-0.webp?1659047080`,  stock: 6, totalStock: 10 },
+  { id: 19, name: 'Пассатижи силовые FIT 200мм шарнирные',              category: 'Ручной инструмент', price: 100, image: `${BC}/70/705001632-0.webp`,              stock: 4, totalStock: 8 },
+  { id: 20, name: 'Струбцина быстрозажимная Dorn PRO 300мм',            category: 'Ручной инструмент', price: 90,  image: `${BC}/70/705005050-0.webp?1726495219`,  stock: 3, totalStock: 6 },
+  { id: 21, name: 'Угольник магнитный FoxWeld FIX-5Pro',                category: 'Ручной инструмент', price: 80,  image: `${BC}/70/706003305-0.webp`,              stock: 4, totalStock: 6 },
 
-  { id: 13, name: 'Ножницы кабельные EKF НКИ-12 1000В', category: 'Электромонтаж', price: 150, image: IMG.hand, stock: 3, totalStock: 5 },
-  { id: 14, name: 'Нож монтёрский Rexant с пяткой', category: 'Электромонтаж', price: 70, image: IMG.hand, stock: 7, totalStock: 10 },
-  { id: 15, name: 'Стриппер-обжимник КВТ WS-11', category: 'Электромонтаж', price: 180, image: IMG.hand, stock: 2, totalStock: 4 },
-  { id: 16, name: 'Паяльник Rexant ЭПСН 40Вт', category: 'Электромонтаж', price: 110, image: IMG.hand, stock: 5, totalStock: 8 },
+  // Электромонтаж
+  { id: 22, name: 'Ножницы кабельные EKF НКИ-12 Master 1000В',          category: 'Электромонтаж', price: 150, image: `${BC}/87/878002935-0.webp?1665221520`,  stock: 3, totalStock: 5 },
+  { id: 23, name: 'Нож монтёрский Rexant с пяткой',                     category: 'Электромонтаж', price: 70,  image: `${BC}/87/878003109-0.webp`,              stock: 7, totalStock: 10 },
+  { id: 24, name: 'Стриппер-обжимник КВТ WS-11 до 10мм²',              category: 'Электромонтаж', price: 180, image: `${BC}/87/878001251-0.webp?1745922638`,  stock: 2, totalStock: 4 },
+  { id: 25, name: 'Паяльник Rexant ЭПСН 40Вт деревянная рукоятка',     category: 'Электромонтаж', price: 110, image: `${BC}/76/760000068-0.webp?1717065014`,  stock: 5, totalStock: 8 },
 
-  { id: 17, name: 'Коронка по бетону SDS-Plus 120мм', category: 'Оснастка', price: 160, image: IMG.bit, stock: 4, totalStock: 7 },
-  { id: 18, name: 'Алмазная чашка Matrix Turbo 180мм', category: 'Оснастка', price: 140, image: IMG.bit, stock: 3, totalStock: 5 },
-  { id: 19, name: 'Алмазная чашка Matrix 125мм', category: 'Оснастка', price: 120, image: IMG.bit, stock: 5, totalStock: 8 },
+  // Оснастка
+  { id: 26, name: 'Коронка по бетону Dorn SDS-Plus 120мм',              category: 'Оснастка', price: 160, image: `${BC}/70/708006329-0.webp?1739284246`, stock: 4, totalStock: 7 },
+  { id: 27, name: 'Алмазная чашка Matrix Turbo 180×22.2мм',             category: 'Оснастка', price: 140, image: `${BC}/70/708004080-0.webp`,            stock: 3, totalStock: 5 },
+  { id: 28, name: 'Алмазная чашка Matrix 125×22.2мм двухрядная',        category: 'Оснастка', price: 120, image: `${BC}/70/708003748-0.webp`,            stock: 5, totalStock: 8 },
 
-  { id: 20, name: 'Триммер бензиновый Dorn Pro TT-S50', category: 'Сад и техника', price: 800, image: IMG.mixer, stock: 1, totalStock: 2 },
+  // Сад и техника
+  { id: 29, name: 'Триммер бензиновый Dorn PRO TT-S50 1.7 л.с.',        category: 'Сад и техника', price: 800, image: `${BC}/95/950001920-0.webp?1751961638`, stock: 1, totalStock: 2 },
 
-  { id: 21, name: 'Щиток лицевой Denzel NS-01 с сеткой', category: 'Экипировка', price: 90, image: IMG.hand, stock: 6, totalStock: 10 },
-  { id: 22, name: 'Крепление для нивелира Condtrol Wall Mount Pro', category: 'Экипировка', price: 130, image: IMG.hand, stock: 2, totalStock: 4 },
-  { id: 23, name: 'Фонарь налобный Kodak 5Вт IP65', category: 'Экипировка', price: 100, image: IMG.hand, stock: 4, totalStock: 7 },
+  // Экипировка
+  { id: 30, name: 'Щиток лицевой Denzel НС-01 с сеткой',               category: 'Экипировка', price: 90,  image: `${BC}/71/713000041-0.webp`,             stock: 6, totalStock: 10 },
+  { id: 31, name: 'Крепление для нивелира Condtrol Wall Mount PRO',     category: 'Экипировка', price: 130, image: `${BC}/71/710000758-0.webp?1720512827`, stock: 2, totalStock: 4 },
+  { id: 32, name: 'Фонарь налобный Kodak 5Вт 600Лм IP65 1500мАч',       category: 'Экипировка', price: 100, image: `${BC}/88/888000030-0.webp`,             stock: 4, totalStock: 7 },
 ];
 
-const CATEGORIES = ['Все', 'Электроинструмент', 'Ручной инструмент', 'Электромонтаж', 'Оснастка', 'Сад и техника', 'Экипировка'];
+const CATEGORIES = ['Все', 'Электроинструмент', 'Сварка', 'Ручной инструмент', 'Электромонтаж', 'Оснастка', 'Сад и техника', 'Экипировка'];
 
 const SPEC_MACHINES: SpecMachine[] = [
   {
