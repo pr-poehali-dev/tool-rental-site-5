@@ -1,0 +1,12 @@
+{
+  "tests": [
+    {
+      "name": "Get catalog",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {"tools": [], "parts": [], "machines": []},
+      "bodyMatcher": "keys_exist"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "tests": [
+    {
+      "name": "Unauthorized request",
+      "method": "GET",
+      "path": "/?entity=tools",
+      "expectedStatus": 401,
+      "bodyMatcher": "partial"
+    }
+  ]
+}

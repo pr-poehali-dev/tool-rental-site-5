@@ -1,0 +1,19 @@
+{
+  "tests": [
+    {
+      "name": "Wrong password",
+      "method": "POST",
+      "path": "/",
+      "body": {"login": "admin", "password": "wrongpass"},
+      "expectedStatus": 401,
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Check invalid token",
+      "method": "GET",
+      "path": "/?token=invalidtoken123",
+      "expectedStatus": 401,
+      "bodyMatcher": "partial"
+    }
+  ]
+}
