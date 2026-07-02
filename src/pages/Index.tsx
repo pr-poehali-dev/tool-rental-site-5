@@ -10,8 +10,20 @@ interface Tool {
   category: string;
   price: number;
   image: string;
-  stock: number;      // сейчас в наличии
-  totalStock: number; // всего у склада
+  stock: number;
+  totalStock: number;
+}
+
+interface SpecMachine {
+  id: number;
+  name: string;
+  subtitle: string;
+  image: string;
+  specs: { label: string; value: string }[];
+  attachments?: string[];
+  price: number;
+  priceUnit: string;
+  available: boolean;
 }
 
 interface CartItem {
@@ -63,9 +75,59 @@ const TOOLS: Tool[] = [
 
 const CATEGORIES = ['Все', 'Электроинструмент', 'Ручной инструмент', 'Электромонтаж', 'Оснастка', 'Сад и техника', 'Экипировка'];
 
+const SPEC_MACHINES: SpecMachine[] = [
+  {
+    id: 101,
+    name: 'Грузовик с КМУ',
+    subtitle: 'Кран-манипулятор до 5 тонн',
+    image: 'https://cdn.poehali.dev/projects/54519bd3-e88c-4417-805a-70dc3963c609/files/9ca341c6-ea83-4a77-b45d-9002feff10bd.jpg',
+    specs: [
+      { label: 'Грузоподъёмность', value: 'до 5 т' },
+      { label: 'Вылет стрелы', value: 'до 8 м' },
+      { label: 'Тип', value: 'КМУ + кузов' },
+      { label: 'Водитель', value: 'включён' },
+    ],
+    price: 3500,
+    priceUnit: 'час',
+    available: true,
+  },
+  {
+    id: 102,
+    name: 'Грузовик-тент',
+    subtitle: 'Борт и закрытый тент, до 3 тонн',
+    image: 'https://cdn.poehali.dev/projects/54519bd3-e88c-4417-805a-70dc3963c609/files/684e1431-15f3-420a-beb0-0f097302c8ed.jpg',
+    specs: [
+      { label: 'Грузоподъёмность', value: 'до 3 т' },
+      { label: 'Кузов', value: 'борт + тент' },
+      { label: 'Объём', value: 'до 20 м³' },
+      { label: 'Водитель', value: 'включён' },
+    ],
+    price: 2200,
+    priceUnit: 'час',
+    available: true,
+  },
+  {
+    id: 103,
+    name: 'Мини-экскаватор Rippa R15',
+    subtitle: 'С комплектом навесного оборудования',
+    image: 'https://cdn.poehali.dev/projects/54519bd3-e88c-4417-805a-70dc3963c609/files/f451c346-9b8c-40c1-91fc-583d42eddbec.jpg',
+    specs: [
+      { label: 'Марка', value: 'Rippa R15' },
+      { label: 'Масса', value: '1 500 кг' },
+      { label: 'Глубина копания', value: 'до 2,5 м' },
+      { label: 'Оператор', value: 'включён' },
+    ],
+    attachments: ['Планировочный ковш', 'Траншейный ковш', 'Гидравлический ямобур'],
+    price: 4500,
+    priceUnit: 'смена',
+    available: true,
+  },
+];
+
 const NAV = [
   { label: 'Главная', id: 'hero' },
-  { label: 'Каталог', id: 'catalog' },
+  { label: 'Инструмент', id: 'catalog' },
+  { label: 'Спецтехника', id: 'spectech' },
   { label: 'О компании', id: 'about' },
   { label: 'Условия аренды', id: 'terms' },
   { label: 'Контакты', id: 'contacts' },
@@ -245,6 +307,83 @@ const Index = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SPECTECH */}
+      <section id="spectech" className="py-24 bg-secondary">
+        <div className="container">
+          <div className="mb-12">
+            <div className="font-body text-sm uppercase tracking-widest text-accent mb-3">Спецтехника</div>
+            <h2 className="font-display font-bold text-5xl md:text-6xl tracking-tight mb-4">Аренда спецтехники</h2>
+            <p className="font-body text-muted-foreground text-lg max-w-xl">Работаем с экипажем. Оператор или водитель включён в стоимость.</p>
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-px bg-border border border-border">
+            {SPEC_MACHINES.map((m) => (
+              <div key={m.id} className="bg-card flex flex-col">
+                {/* Фото */}
+                <div className="aspect-[4/3] overflow-hidden bg-secondary">
+                  <img src={m.image} alt={m.name} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" />
+                </div>
+
+                <div className="p-6 flex flex-col flex-1">
+                  {/* Заголовок */}
+                  <div className="mb-4">
+                    <h3 className="font-display font-bold text-2xl leading-tight">{m.name}</h3>
+                    <p className="font-body text-sm text-muted-foreground mt-1">{m.subtitle}</p>
+                  </div>
+
+                  {/* Характеристики */}
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-4">
+                    {m.specs.map((s, i) => (
+                      <div key={i} className="border-b border-border pb-2">
+                        <div className="font-body text-xs text-muted-foreground">{s.label}</div>
+                        <div className="font-display font-semibold text-sm">{s.value}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Оснастка (если есть) */}
+                  {m.attachments && (
+                    <div className="mb-4">
+                      <div className="font-body text-xs uppercase tracking-widest text-muted-foreground mb-2">Навесное оборудование</div>
+                      <div className="flex flex-col gap-1.5">
+                        {m.attachments.map((a, i) => (
+                          <div key={i} className="flex items-center gap-2 font-body text-sm">
+                            <Icon name="Check" size={14} className="text-accent shrink-0" />
+                            {a}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Цена и кнопка */}
+                  <div className="mt-auto pt-4 border-t border-border flex items-end justify-between gap-4">
+                    <div>
+                      <div className="font-display font-bold text-3xl">{m.price.toLocaleString('ru')} ₽</div>
+                      <div className="font-body text-xs text-muted-foreground">/ {m.priceUnit} · с оператором</div>
+                    </div>
+                    <Button
+                      onClick={() => scrollTo('contacts')}
+                      className="bg-accent hover:bg-accent/90 text-accent-foreground rounded-none h-12 px-5 font-body shrink-0"
+                    >
+                      Заказать
+                      <Icon name="ArrowRight" size={16} className="ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Плашка о мин. заказе */}
+          <div className="mt-6 flex flex-wrap items-center gap-6 font-body text-sm text-muted-foreground">
+            <div className="flex items-center gap-2"><Icon name="Clock" size={15} className="text-accent" /> Минимальный заказ — 4 часа</div>
+            <div className="flex items-center gap-2"><Icon name="MapPin" size={15} className="text-accent" /> Выезд по городу и области</div>
+            <div className="flex items-center gap-2"><Icon name="Phone" size={15} className="text-accent" /> Диспетчер 24/7</div>
           </div>
         </div>
       </section>
