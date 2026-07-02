@@ -1,9 +1,10 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { getCatalog, submitOrder } from '@/api';
+import ImageSlider from '@/components/ImageSlider';
 
 interface Tool {
   id: number;
@@ -11,6 +12,7 @@ interface Tool {
   category: string;
   price: number;
   image: string;
+  images: string[];
   stock: number;
   totalStock: number;
   specs: string;
@@ -24,6 +26,7 @@ interface Part {
   category: string;
   price: number;
   image: string;
+  images: string[];
   stock: number;
   specs: string;
   toolType: string;
@@ -35,6 +38,7 @@ interface SpecMachine {
   name: string;
   subtitle: string;
   image: string;
+  images: string[];
   specs: { label: string; value: string }[];
   attachments?: string[];
   price: number;
@@ -308,9 +312,11 @@ export default function Index() {
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
                 {(showAllTools ? filtered : filtered.slice(0, PAGE_LIMIT)).map((tool) => (
                   <div key={tool.id} className="group bg-card p-6 flex flex-col">
-                    <div className="aspect-square bg-secondary mb-4 overflow-hidden">
-                      <img src={tool.image} alt={tool.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                    </div>
+                    <ImageSlider
+                      images={tool.images?.length ? tool.images : [tool.image]}
+                      alt={tool.name}
+                      className="aspect-square bg-secondary mb-4"
+                    />
                     <div className="font-body text-xs uppercase tracking-widest text-muted-foreground mb-1">{tool.category}</div>
                     <h3 className="font-display font-semibold text-xl leading-snug mb-2">{tool.name}</h3>
                     <p className="font-body text-xs text-muted-foreground mb-3">{tool.specs}</p>
@@ -389,9 +395,11 @@ export default function Index() {
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
                 {(showAllParts ? filteredParts : filteredParts.slice(0, PAGE_LIMIT)).map((part) => (
                   <div key={part.id} className="group bg-card p-6 flex flex-col">
-                    <div className="aspect-square bg-secondary mb-4 overflow-hidden">
-                      <img src={part.image} alt={part.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                    </div>
+                    <ImageSlider
+                      images={part.images?.length ? part.images : [part.image]}
+                      alt={part.name}
+                      className="aspect-square bg-secondary mb-4"
+                    />
                     <div className="font-body text-xs uppercase tracking-widest text-muted-foreground mb-1">{part.category}</div>
                     <h3 className="font-display font-semibold text-xl leading-snug mb-2">{part.name}</h3>
                     <p className="font-body text-xs text-muted-foreground mb-3">{part.specs}</p>
@@ -455,9 +463,11 @@ export default function Index() {
             <div className="grid lg:grid-cols-3 gap-px bg-border border border-border">
               {(showAllMachines ? machines : machines.slice(0, PAGE_LIMIT)).map((m) => (
                 <div key={m.id} className="bg-card flex flex-col">
-                  <div className="aspect-[4/3] overflow-hidden bg-secondary">
-                    <img src={m.image} alt={m.name} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" />
-                  </div>
+                  <ImageSlider
+                    images={m.images?.length ? m.images : [m.image]}
+                    alt={m.name}
+                    className="aspect-[4/3] bg-secondary"
+                  />
                   <div className="p-6 flex flex-col flex-1">
                     <div className="mb-4">
                       <h3 className="font-display font-bold text-2xl leading-tight">{m.name}</h3>

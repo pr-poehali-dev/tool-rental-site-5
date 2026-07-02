@@ -6,6 +6,7 @@ import {
   adminLogin, checkAdminToken, adminGet, adminCreate, adminUpdate, adminDelete,
   getOrders, updateOrderStatus, getClients, getClientOrders, updateClient,
 } from '@/api';
+import ImageUploader from '@/components/ImageUploader';
 
 type Tab = 'tools' | 'parts' | 'machines' | 'orders' | 'clients';
 
@@ -595,11 +596,11 @@ export default function Admin() {
                     <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">Материалы (через запятую)</label>
                     <Input value={(editItem.material as string[] || []).join(', ')} onChange={(e) => setField('material', e.target.value.split(',').map((s) => s.trim()).filter(Boolean))} placeholder="Металл, Бетон" className="rounded-none font-body" />
                   </div>
-                  <div>
-                    <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">URL фото</label>
-                    <Input value={editItem.image as string || ''} onChange={(e) => setField('image', e.target.value)} className="rounded-none font-body text-xs" />
-                    {editItem.image && <img src={editItem.image as string} alt="" className="mt-2 h-20 object-contain border border-border" />}
-                  </div>
+                  <ImageUploader
+                    images={editItem.images as string[] || (editItem.image ? [editItem.image as string] : [])}
+                    onChange={(imgs) => { setField('images', imgs); setField('image', imgs[0] || ''); }}
+                    token={token}
+                  />
                   <div className="flex items-center gap-3">
                     <input type="checkbox" id="active" checked={editItem.active as boolean ?? true} onChange={(e) => setField('active', e.target.checked)} className="w-4 h-4" />
                     <label htmlFor="active" className="font-body text-sm">Показывать в каталоге</label>
@@ -624,11 +625,11 @@ export default function Admin() {
                       </select>
                     </div>
                   </div>
-                  <div>
-                    <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">URL фото</label>
-                    <Input value={editItem.image as string || ''} onChange={(e) => setField('image', e.target.value)} className="rounded-none font-body text-xs" />
-                    {editItem.image && <img src={editItem.image as string} alt="" className="mt-2 h-20 object-contain border border-border" />}
-                  </div>
+                  <ImageUploader
+                    images={editItem.images as string[] || (editItem.image ? [editItem.image as string] : [])}
+                    onChange={(imgs) => { setField('images', imgs); setField('image', imgs[0] || ''); }}
+                    token={token}
+                  />
                   <div>
                     <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">Навесное оборудование (через запятую)</label>
                     <Input value={(editItem.attachments as string[] || []).join(', ')} onChange={(e) => setField('attachments', e.target.value.split(',').map((s) => s.trim()).filter(Boolean))} placeholder="Ковш планировочный, Ямобур" className="rounded-none font-body" />

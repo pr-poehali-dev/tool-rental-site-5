@@ -99,3 +99,34 @@ export async function updateClient(token: string, data: { phone: string; fullNam
   });
   return res.json();
 }
+
+export async function uploadImageBase64(token: string, file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const res = await fetch(`${ADMIN_TOOLS_URL}?action=upload`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+          body: JSON.stringify({ source: 'base64', data: reader.result as string, filename: file.name }),
+        });
+        const data = await res.json();
+        if (data.url) resolve(data.url);
+        else reject(new Error(data.error || 'Ошибка загрузки'));
+      } catch (e) { reject(e); }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+export async function uploadImageUrl(token: string, url: string): Promise<string> {
+  const res = await fetch(`${ADMIN_TOOLS_URL}?action=upload`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+    body: JSON.stringify({ source: 'url', data: url }),
+  });
+  const data = await res.json();
+  if (data.url) return data.url;
+  throw new Error(data.error || 'Ошибка загрузки');
+}
