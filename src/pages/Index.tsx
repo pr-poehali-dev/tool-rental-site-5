@@ -137,6 +137,7 @@ const Index = () => {
   const [activeCat, setActiveCat] = useState('Все');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [excavatorAttachments, setExcavatorAttachments] = useState<string[]>([]);
 
   const filtered = useMemo(
     () => (activeCat === 'Все' ? TOOLS : TOOLS.filter((t) => t.category === activeCat)),
@@ -171,7 +172,7 @@ const Index = () => {
             <div className="w-8 h-8 bg-accent flex items-center justify-center">
               <Icon name="Wrench" size={18} className="text-white" />
             </div>
-            <span className="font-display font-bold text-2xl tracking-tight">ПРОКАТ</span>
+            <span className="font-display font-bold text-2xl tracking-tight">Строй_Rent</span>
           </button>
           <nav className="hidden md:flex items-center gap-8">
             {NAV.map((n) => (
@@ -348,15 +349,41 @@ const Index = () => {
                   {/* Оснастка (если есть) */}
                   {m.attachments && (
                     <div className="mb-4">
-                      <div className="font-body text-xs uppercase tracking-widest text-muted-foreground mb-2">Навесное оборудование</div>
-                      <div className="flex flex-col gap-1.5">
-                        {m.attachments.map((a, i) => (
-                          <div key={i} className="flex items-center gap-2 font-body text-sm">
-                            <Icon name="Check" size={14} className="text-accent shrink-0" />
-                            {a}
-                          </div>
-                        ))}
+                      <div className="font-body text-xs uppercase tracking-widest text-muted-foreground mb-2">
+                        Навесное оборудование — выберите нужное
                       </div>
+                      <div className="flex flex-col gap-2">
+                        {m.attachments.map((a, i) => {
+                          const checked = excavatorAttachments.includes(a);
+                          return (
+                            <button
+                              key={i}
+                              onClick={() =>
+                                setExcavatorAttachments((prev) =>
+                                  checked ? prev.filter((x) => x !== a) : [...prev, a]
+                                )
+                              }
+                              className={`flex items-center gap-2.5 px-3 py-2 border text-left transition-colors font-body text-sm ${
+                                checked
+                                  ? 'border-accent bg-accent/5 text-foreground'
+                                  : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+                              }`}
+                            >
+                              <div className={`w-4 h-4 border flex items-center justify-center shrink-0 transition-colors ${
+                                checked ? 'border-accent bg-accent' : 'border-border'
+                              }`}>
+                                {checked && <Icon name="Check" size={11} className="text-white" />}
+                              </div>
+                              {a}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {excavatorAttachments.length > 0 && (
+                        <p className="font-body text-xs text-muted-foreground mt-2">
+                          Выбрано: {excavatorAttachments.length} — уточним наличие при подтверждении
+                        </p>
+                      )}
                     </div>
                   )}
 
@@ -454,8 +481,8 @@ const Index = () => {
             <h2 className="font-display font-bold text-5xl md:text-6xl tracking-tight mb-10">Свяжитесь с нами</h2>
             <div className="space-y-6">
               {[
-                { icon: 'Phone', t: '+7 (999) 123-45-67', d: 'Ежедневно с 8:00 до 22:00' },
-                { icon: 'Mail', t: 'info@prokat.ru', d: 'Ответим в течение часа' },
+                { icon: 'Phone', t: '+7 (901) 504-64-44', d: 'Ежедневно с 8:00 до 22:00' },
+                { icon: 'Mail', t: 'stroy_rent@list.ru', d: 'Ответим в течение часа' },
                 { icon: 'MapPin', t: 'ул. Строителей, 15', d: 'Пункт выдачи и самовывоз' },
               ].map((c, i) => (
                 <div key={i} className="flex items-start gap-4">
@@ -495,10 +522,10 @@ const Index = () => {
             <div className="w-8 h-8 bg-accent flex items-center justify-center">
               <Icon name="Wrench" size={18} className="text-white" />
             </div>
-            <span className="font-display font-bold text-2xl">ПРОКАТ</span>
+            <span className="font-display font-bold text-2xl">Строй_Rent</span>
           </div>
           <div className="font-body text-sm text-background/50">
-            © 2026 ПРОКАТ. Аренда строительного инструмента.
+            © 2026 Строй_Rent. Аренда строительного инструмента и спецтехники.
           </div>
         </div>
       </footer>
