@@ -85,6 +85,12 @@ export default function Index() {
   // Комплектующие — фильтры
   const [partSearch, setPartSearch] = useState('');
 
+  // Пагинация «Посмотреть ещё»
+  const PAGE_LIMIT = 15;
+  const [showAllTools, setShowAllTools] = useState(false);
+  const [showAllParts, setShowAllParts] = useState(false);
+  const [showAllMachines, setShowAllMachines] = useState(false);
+
   // Корзина
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
@@ -139,7 +145,7 @@ export default function Index() {
     setCart((prev) => prev.map((i) => (i.tool.id === id ? { ...i, qty: Math.min(Math.max(1, qty), i.tool.stock) } : i)));
   const removeItem = (id: number) => setCart((prev) => prev.filter((i) => i.tool.id !== id));
 
-  const resetFilters = () => { setActiveType('Все типы'); setActiveMaterial('Все материалы'); setSearch(''); };
+  const resetFilters = () => { setActiveType('Все типы'); setActiveMaterial('Все материалы'); setSearch(''); setShowAllTools(false); };
 
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
 
@@ -275,7 +281,7 @@ export default function Index() {
           {/* Категории */}
           <div className="flex flex-wrap gap-2 mb-8">
             {TOOL_CATEGORIES.map((c) => (
-              <button key={c} onClick={() => setActiveCat(c)} className={`font-body text-sm px-5 py-2.5 border transition-colors ${activeCat === c ? 'bg-foreground text-background border-foreground' : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'}`}>{c}</button>
+              <button key={c} onClick={() => { setActiveCat(c); setShowAllTools(false); }} className={`font-body text-sm px-5 py-2.5 border transition-colors ${activeCat === c ? 'bg-foreground text-background border-foreground' : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'}`}>{c}</button>
             ))}
           </div>
 
@@ -298,35 +304,53 @@ export default function Index() {
               <button onClick={resetFilters} className="font-body text-sm underline hover:text-foreground">Сбросить фильтры</button>
             </div>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
-              {filtered.map((tool) => (
-                <div key={tool.id} className="group bg-card p-6 flex flex-col">
-                  <div className="aspect-square bg-secondary mb-4 overflow-hidden">
-                    <img src={tool.image} alt={tool.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                  </div>
-                  <div className="font-body text-xs uppercase tracking-widest text-muted-foreground mb-1">{tool.category}</div>
-                  <h3 className="font-display font-semibold text-xl leading-snug mb-2">{tool.name}</h3>
-                  <p className="font-body text-xs text-muted-foreground mb-3">{tool.specs}</p>
-                  {tool.material.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-4">
-                      {tool.material.map((m) => <span key={m} className="font-body text-xs px-2 py-0.5 bg-secondary border border-border text-muted-foreground">{m}</span>)}
+            <>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
+                {(showAllTools ? filtered : filtered.slice(0, PAGE_LIMIT)).map((tool) => (
+                  <div key={tool.id} className="group bg-card p-6 flex flex-col">
+                    <div className="aspect-square bg-secondary mb-4 overflow-hidden">
+                      <img src={tool.image} alt={tool.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                     </div>
-                  )}
-                  <div className="mt-auto flex items-end justify-between">
-                    <div>
-                      <span className="font-display font-bold text-3xl">{tool.price} ₽</span>
-                      <span className="font-body text-sm text-muted-foreground"> / сутки</span>
+                    <div className="font-body text-xs uppercase tracking-widest text-muted-foreground mb-1">{tool.category}</div>
+                    <h3 className="font-display font-semibold text-xl leading-snug mb-2">{tool.name}</h3>
+                    <p className="font-body text-xs text-muted-foreground mb-3">{tool.specs}</p>
+                    {tool.material.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-4">
+                        {tool.material.map((m) => <span key={m} className="font-body text-xs px-2 py-0.5 bg-secondary border border-border text-muted-foreground">{m}</span>)}
+                      </div>
+                    )}
+                    <div className="mt-auto flex items-end justify-between">
+                      <div>
+                        <span className="font-display font-bold text-3xl">{tool.price} ₽</span>
+                        <span className="font-body text-sm text-muted-foreground"> / сутки</span>
+                      </div>
+                      <Button onClick={() => addToCart(tool)} size="icon" disabled={tool.stock === 0} className="bg-accent hover:bg-accent/90 text-accent-foreground rounded-none h-12 w-12 disabled:opacity-40">
+                        <Icon name="Plus" size={20} />
+                      </Button>
                     </div>
-                    <Button onClick={() => addToCart(tool)} size="icon" disabled={tool.stock === 0} className="bg-accent hover:bg-accent/90 text-accent-foreground rounded-none h-12 w-12 disabled:opacity-40">
-                      <Icon name="Plus" size={20} />
-                    </Button>
+                    {tool.stock === 0 && <p className="font-body text-xs text-destructive mt-2">Нет в наличии</p>}
                   </div>
-                  {tool.stock === 0 && <p className="font-body text-xs text-destructive mt-2">Нет в наличии</p>}
+                ))}
+              </div>
+              <div className="mt-5 flex items-center justify-between">
+                <div className="font-body text-sm text-muted-foreground">
+                  Показано: {Math.min(showAllTools ? filtered.length : PAGE_LIMIT, filtered.length)} из {filtered.length}
                 </div>
-              ))}
-            </div>
+                {filtered.length > PAGE_LIMIT && !showAllTools && (
+                  <button onClick={() => setShowAllTools(true)} className="flex items-center gap-2 font-body text-sm px-6 py-2.5 border border-border hover:border-foreground hover:text-foreground text-muted-foreground transition-colors">
+                    Посмотреть ещё {filtered.length - PAGE_LIMIT}
+                    <Icon name="ChevronDown" size={15} />
+                  </button>
+                )}
+                {showAllTools && filtered.length > PAGE_LIMIT && (
+                  <button onClick={() => setShowAllTools(false)} className="flex items-center gap-2 font-body text-sm px-6 py-2.5 border border-border hover:border-foreground hover:text-foreground text-muted-foreground transition-colors">
+                    Свернуть
+                    <Icon name="ChevronUp" size={15} />
+                  </button>
+                )}
+              </div>
+            </>
           )}
-          {filtered.length > 0 && <div className="mt-4 font-body text-sm text-muted-foreground">Показано: {filtered.length} из {tools.length}</div>}
         </div>
       </section>
 
@@ -361,36 +385,54 @@ export default function Index() {
               <p className="font-body">Ничего не найдено</p>
             </div>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
-              {filteredParts.map((part) => (
-                <div key={part.id} className="group bg-card p-6 flex flex-col">
-                  <div className="aspect-square bg-secondary mb-4 overflow-hidden">
-                    <img src={part.image} alt={part.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                  </div>
-                  <div className="font-body text-xs uppercase tracking-widest text-muted-foreground mb-1">{part.category}</div>
-                  <h3 className="font-display font-semibold text-xl leading-snug mb-2">{part.name}</h3>
-                  <p className="font-body text-xs text-muted-foreground mb-3">{part.specs}</p>
-                  {part.material.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-4">
-                      {part.material.map((m) => <span key={m} className="font-body text-xs px-2 py-0.5 bg-secondary border border-border text-muted-foreground">{m}</span>)}
+            <>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
+                {(showAllParts ? filteredParts : filteredParts.slice(0, PAGE_LIMIT)).map((part) => (
+                  <div key={part.id} className="group bg-card p-6 flex flex-col">
+                    <div className="aspect-square bg-secondary mb-4 overflow-hidden">
+                      <img src={part.image} alt={part.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                     </div>
-                  )}
-                  <div className="mt-auto flex items-end justify-between pt-4 border-t border-border">
-                    <div>
-                      <span className="font-display font-bold text-3xl">{part.price} ₽</span>
-                      <span className="font-body text-sm text-muted-foreground"> / шт</span>
+                    <div className="font-body text-xs uppercase tracking-widest text-muted-foreground mb-1">{part.category}</div>
+                    <h3 className="font-display font-semibold text-xl leading-snug mb-2">{part.name}</h3>
+                    <p className="font-body text-xs text-muted-foreground mb-3">{part.specs}</p>
+                    {part.material.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-4">
+                        {part.material.map((m) => <span key={m} className="font-body text-xs px-2 py-0.5 bg-secondary border border-border text-muted-foreground">{m}</span>)}
+                      </div>
+                    )}
+                    <div className="mt-auto flex items-end justify-between pt-4 border-t border-border">
+                      <div>
+                        <span className="font-display font-bold text-3xl">{part.price} ₽</span>
+                        <span className="font-body text-sm text-muted-foreground"> / шт</span>
+                      </div>
+                      <Button onClick={() => scrollTo('contacts')} className="bg-accent hover:bg-accent/90 text-accent-foreground rounded-none h-10 px-4 font-body text-sm">
+                        Заказать
+                      </Button>
                     </div>
-                    <Button onClick={() => scrollTo('contacts')} className="bg-accent hover:bg-accent/90 text-accent-foreground rounded-none h-10 px-4 font-body text-sm">
-                      Заказать
-                    </Button>
+                    <div className="flex items-center gap-1.5 mt-2">
+                      <span className={`w-2 h-2 rounded-full ${part.stock > 0 ? 'bg-green-500' : 'bg-red-400'}`} />
+                      <span className="font-body text-xs text-muted-foreground">{part.stock > 0 ? `В наличии: ${part.stock} шт` : 'Нет в наличии'}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <span className={`w-2 h-2 rounded-full ${part.stock > 0 ? 'bg-green-500' : 'bg-red-400'}`} />
-                    <span className="font-body text-xs text-muted-foreground">{part.stock > 0 ? `В наличии: ${part.stock} шт` : 'Нет в наличии'}</span>
-                  </div>
+                ))}
+              </div>
+              <div className="mt-5 flex items-center justify-between">
+                <div className="font-body text-sm text-muted-foreground">
+                  Показано: {Math.min(showAllParts ? filteredParts.length : PAGE_LIMIT, filteredParts.length)} из {filteredParts.length}
                 </div>
-              ))}
-            </div>
+                {filteredParts.length > PAGE_LIMIT && !showAllParts && (
+                  <button onClick={() => setShowAllParts(true)} className="flex items-center gap-2 font-body text-sm px-6 py-2.5 border border-border hover:border-foreground hover:text-foreground text-muted-foreground transition-colors">
+                    Посмотреть ещё {filteredParts.length - PAGE_LIMIT}
+                    <Icon name="ChevronDown" size={15} />
+                  </button>
+                )}
+                {showAllParts && filteredParts.length > PAGE_LIMIT && (
+                  <button onClick={() => setShowAllParts(false)} className="flex items-center gap-2 font-body text-sm px-6 py-2.5 border border-border hover:border-foreground hover:text-foreground text-muted-foreground transition-colors">
+                    Свернуть <Icon name="ChevronUp" size={15} />
+                  </button>
+                )}
+              </div>
+            </>
           )}
         </div>
       </section>
@@ -409,8 +451,9 @@ export default function Index() {
               {Array.from({ length: 3 }).map((_, i) => <div key={i} className="bg-card p-6 animate-pulse h-64" />)}
             </div>
           ) : (
+            <>
             <div className="grid lg:grid-cols-3 gap-px bg-border border border-border">
-              {machines.map((m) => (
+              {(showAllMachines ? machines : machines.slice(0, PAGE_LIMIT)).map((m) => (
                 <div key={m.id} className="bg-card flex flex-col">
                   <div className="aspect-[4/3] overflow-hidden bg-secondary">
                     <img src={m.image} alt={m.name} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" />
@@ -461,6 +504,23 @@ export default function Index() {
                 </div>
               ))}
             </div>
+            <div className="mt-5 flex items-center justify-between">
+              <div className="font-body text-sm text-muted-foreground">
+                Показано: {Math.min(showAllMachines ? machines.length : PAGE_LIMIT, machines.length)} из {machines.length}
+              </div>
+              {machines.length > PAGE_LIMIT && !showAllMachines && (
+                <button onClick={() => setShowAllMachines(true)} className="flex items-center gap-2 font-body text-sm px-6 py-2.5 border border-border hover:border-foreground hover:text-foreground text-muted-foreground transition-colors">
+                  Посмотреть ещё {machines.length - PAGE_LIMIT}
+                  <Icon name="ChevronDown" size={15} />
+                </button>
+              )}
+              {showAllMachines && machines.length > PAGE_LIMIT && (
+                <button onClick={() => setShowAllMachines(false)} className="flex items-center gap-2 font-body text-sm px-6 py-2.5 border border-border hover:border-foreground hover:text-foreground text-muted-foreground transition-colors">
+                  Свернуть <Icon name="ChevronUp" size={15} />
+                </button>
+              )}
+            </div>
+            </>
           )}
 
           <div className="mt-6 flex flex-wrap items-center gap-6 font-body text-sm text-muted-foreground">
@@ -476,7 +536,7 @@ export default function Index() {
         <div className="container grid md:grid-cols-2 gap-16 items-center">
           <div>
             <div className="font-body text-sm uppercase tracking-widest text-accent mb-3">О компании</div>
-            <h2 className="font-display font-bold text-5xl md:text-6xl tracking-tight mb-8">Строим доверие с 2019 года</h2>
+            <h2 className="font-display font-bold text-5xl md:text-6xl tracking-tight mb-8">Начинаем свой путь с качества и доверия</h2>
             <p className="font-body text-lg text-background/70 mb-6">Мы — команда, которая понимает стройку изнутри. Предоставляем в аренду только проверенное профессиональное оборудование ведущих брендов.</p>
             <p className="font-body text-lg text-background/70">Каждый инструмент проходит техобслуживание перед выдачей. Вы получаете надёжную технику, готовую к работе.</p>
           </div>
