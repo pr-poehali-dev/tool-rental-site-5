@@ -29,13 +29,27 @@ def handler(event: dict, context) -> dict:
 
     if method == 'POST':
         body = json.loads(event.get('body') or '{}')
+        name = body.get('name', '')
+        phone = body.get('phone', '')
         cur = conn.cursor()
         cur.execute(
             "INSERT INTO orders (name, phone, message, cart) VALUES (%s, %s, %s, %s) RETURNING id",
-            (body.get('name', ''), body.get('phone', ''), body.get('message', ''),
+            (name, phone, body.get('message', ''),
              json.dumps(body.get('cart', []), ensure_ascii=False))
         )
         new_id = cur.fetchone()[0]
+        # Автоматически создаём/обновляем клиента по телефону
+        if phone:
+            cur.execute("""
+                INSERT INTO clients (phone, full_name)
+                VALUES (%s, %s)
+                ON CONFLICT (phone) DO UPDATE
+                SET full_name = CASE
+                    WHEN clients.full_name = '' THEN EXCLUDED.full_name
+                    ELSE clients.full_name
+                END,
+                updated_at = NOW()
+            """, (phone, name))
         conn.commit()
         cur.close()
         conn.close()

@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
-import { adminLogin, checkAdminToken, adminGet, adminCreate, adminUpdate, adminDelete, getOrders, updateOrderStatus } from '@/api';
+import {
+  adminLogin, checkAdminToken, adminGet, adminCreate, adminUpdate, adminDelete,
+  getOrders, updateOrderStatus, getClients, getClientOrders, updateClient,
+} from '@/api';
 
-type Tab = 'tools' | 'parts' | 'machines' | 'orders';
+type Tab = 'tools' | 'parts' | 'machines' | 'orders' | 'clients';
 
 const TOOL_CATEGORIES = ['Электроинструмент', 'Сварка', 'Ручной инструмент', 'Измерение', 'Электромонтаж', 'Сад и техника', 'Экипировка'];
 const PART_CATEGORIES = ['Оснастка'];
-
 const STATUS_LABELS: Record<string, string> = { new: 'Новая', processing: 'В работе', done: 'Выполнена' };
 const STATUS_COLORS: Record<string, string> = { new: 'bg-blue-100 text-blue-700', processing: 'bg-amber-100 text-amber-700', done: 'bg-green-100 text-green-700' };
 
@@ -22,6 +24,30 @@ function emptyMachine() {
   return { name: '', subtitle: '', image: '', specs: [] as {label:string;value:string}[], attachments: [] as string[], price: 0, priceUnit: 'час', available: true };
 }
 
+interface Client {
+  id: number;
+  phone: string;
+  fullName: string;
+  notes: string;
+  createdAt: string | null;
+  orderCount: number;
+  totalAmount: number;
+  firstOrder: string | null;
+  lastOrder: string | null;
+  orderIds: number[];
+}
+
+interface ClientOrder {
+  id: number;
+  name: string;
+  phone: string;
+  message: string;
+  cart: { name: string; qty: number; days: number; price: number }[];
+  status: string;
+  createdAt: string;
+  total: number;
+}
+
 export default function Admin() {
   const [token, setToken] = useState(() => localStorage.getItem('admin_token') || '');
   const [authChecked, setAuthChecked] = useState(false);
@@ -32,13 +58,21 @@ export default function Admin() {
   const [authLoading, setAuthLoading] = useState(false);
 
   const [tab, setTab] = useState<Tab>('tools');
-  const [data, setData] = useState<Record<Tab, unknown[]>>({ tools: [], parts: [], machines: [], orders: [] });
+  const [data, setData] = useState<Record<Tab, unknown[]>>({ tools: [], parts: [], machines: [], orders: [], clients: [] });
   const [dataLoading, setDataLoading] = useState(false);
 
+  // Каталог — редактирование
   const [editItem, setEditItem] = useState<Record<string, unknown> | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+
+  // Клиенты — выбранный клиент + его заказы + редактирование
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [clientOrders, setClientOrders] = useState<ClientOrder[]>([]);
+  const [clientOrdersLoading, setClientOrdersLoading] = useState(false);
+  const [editClient, setEditClient] = useState<Client | null>(null);
+  const [clientSearch, setClientSearch] = useState('');
 
   // Проверка токена при загрузке
   useEffect(() => {
@@ -57,8 +91,14 @@ export default function Admin() {
   useEffect(() => {
     if (!authed) return;
     setDataLoading(true);
-    const entity = tab === 'orders' ? null : tab === 'machines' ? 'machines' : tab;
-    const loader = tab === 'orders' ? getOrders(token) : adminGet(entity!, token);
+    setSelectedClient(null);
+    setClientOrders([]);
+
+    let loader: Promise<unknown[]>;
+    if (tab === 'orders') loader = getOrders(token);
+    else if (tab === 'clients') loader = getClients(token);
+    else loader = adminGet(tab === 'machines' ? 'machines' : tab, token);
+
     loader.then((d) => {
       setData((prev) => ({ ...prev, [tab]: Array.isArray(d) ? d : [] }));
       setDataLoading(false);
@@ -79,11 +119,7 @@ export default function Admin() {
     setAuthLoading(false);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('admin_token');
-    setToken('');
-    setAuthed(false);
-  };
+  const handleLogout = () => { localStorage.removeItem('admin_token'); setToken(''); setAuthed(false); };
 
   const openEdit = (item: unknown) => { setEditItem({ ...(item as Record<string, unknown>) }); setIsNew(false); };
   const openNew = () => {
@@ -92,28 +128,26 @@ export default function Admin() {
     setIsNew(true);
   };
 
-  const handleSave = async () => {
-    if (!editItem) return;
-    setSaving(true);
-    if (isNew) {
-      await adminCreate(tab === 'machines' ? 'machines' : tab, token, editItem);
-    } else {
-      await adminUpdate(tab === 'machines' ? 'machines' : tab, token, editItem);
-    }
-    setSaving(false);
-    setEditItem(null);
-    // Обновляем список
+  const refreshTabData = async () => {
     const entity = tab === 'machines' ? 'machines' : tab;
     const updated = await adminGet(entity, token);
     setData((prev) => ({ ...prev, [tab]: Array.isArray(updated) ? updated : [] }));
   };
 
+  const handleSave = async () => {
+    if (!editItem) return;
+    setSaving(true);
+    if (isNew) await adminCreate(tab === 'machines' ? 'machines' : tab, token, editItem);
+    else await adminUpdate(tab === 'machines' ? 'machines' : tab, token, editItem);
+    setSaving(false);
+    setEditItem(null);
+    await refreshTabData();
+  };
+
   const handleDelete = async (id: number) => {
     await adminDelete(tab === 'machines' ? 'machines' : tab, token, id);
     setDeleteId(null);
-    const entity = tab === 'machines' ? 'machines' : tab;
-    const updated = await adminGet(entity, token);
-    setData((prev) => ({ ...prev, [tab]: Array.isArray(updated) ? updated : [] }));
+    await refreshTabData();
   };
 
   const handleOrderStatus = async (id: number, status: string) => {
@@ -122,7 +156,34 @@ export default function Admin() {
     setData((prev) => ({ ...prev, orders: Array.isArray(updated) ? updated : [] }));
   };
 
+  const handleSelectClient = async (client: Client) => {
+    setSelectedClient(client);
+    setClientOrdersLoading(true);
+    const orders = await getClientOrders(token, client.phone);
+    setClientOrders(Array.isArray(orders) ? orders : []);
+    setClientOrdersLoading(false);
+  };
+
+  const handleSaveClient = async () => {
+    if (!editClient) return;
+    setSaving(true);
+    await updateClient(token, { phone: editClient.phone, fullName: editClient.fullName, notes: editClient.notes });
+    setSaving(false);
+    setEditClient(null);
+    const updated = await getClients(token);
+    setData((prev) => ({ ...prev, clients: Array.isArray(updated) ? updated : [] }));
+    if (selectedClient?.phone === editClient.phone) {
+      setSelectedClient({ ...selectedClient, fullName: editClient.fullName, notes: editClient.notes });
+    }
+  };
+
   const setField = (key: string, value: unknown) => setEditItem((prev) => prev ? { ...prev, [key]: value } : prev);
+
+  const filteredClients = (data.clients as Client[]).filter((c) => {
+    if (!clientSearch.trim()) return true;
+    const q = clientSearch.toLowerCase();
+    return c.phone.includes(q) || c.fullName.toLowerCase().includes(q);
+  });
 
   if (!authChecked) {
     return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full" /></div>;
@@ -152,7 +213,8 @@ export default function Admin() {
     );
   }
 
-  const items = data[tab] as Record<string, unknown>[];
+  const items = tab !== 'clients' ? data[tab] as Record<string, unknown>[] : [];
+  const newOrdersCount = (data.orders as Record<string, unknown>[]).filter((o) => o.status === 'new').length;
 
   return (
     <div className="min-h-screen bg-secondary">
@@ -178,21 +240,26 @@ export default function Admin() {
 
       <div className="container py-8">
         {/* Вкладки */}
-        <div className="flex gap-1 mb-8 bg-background border border-border p-1 w-fit">
-          {([['tools', 'Инструменты', 'Wrench'], ['parts', 'Комплектующие', 'Package'], ['machines', 'Спецтехника', 'Truck'], ['orders', 'Заявки', 'ClipboardList']] as [Tab, string, string][]).map(([key, label, icon]) => (
-            <button key={key} onClick={() => setTab(key)} className={`flex items-center gap-2 px-4 py-2 font-body text-sm transition-colors ${tab === key ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}>
+        <div className="flex flex-wrap gap-1 mb-8 bg-background border border-border p-1 w-fit">
+          {([
+            ['tools', 'Инструменты', 'Wrench'],
+            ['parts', 'Комплектующие', 'Package'],
+            ['machines', 'Спецтехника', 'Truck'],
+            ['orders', 'Заявки', 'ClipboardList'],
+            ['clients', 'Клиенты', 'Users'],
+          ] as [Tab, string, string][]).map(([key, label, icon]) => (
+            <button key={key} onClick={() => setTab(key)}
+              className={`flex items-center gap-2 px-4 py-2 font-body text-sm transition-colors ${tab === key ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}>
               <Icon name={icon} size={15} /> {label}
-              {key === 'orders' && (data.orders as unknown[]).filter((o) => (o as Record<string, unknown>).status === 'new').length > 0 && (
-                <span className="w-5 h-5 bg-accent text-white text-xs rounded-full flex items-center justify-center">
-                  {(data.orders as unknown[]).filter((o) => (o as Record<string, unknown>).status === 'new').length}
-                </span>
+              {key === 'orders' && newOrdersCount > 0 && (
+                <span className="w-5 h-5 bg-accent text-white text-xs rounded-full flex items-center justify-center">{newOrdersCount}</span>
               )}
             </button>
           ))}
         </div>
 
-        {/* Заголовок раздела */}
-        {tab !== 'orders' && (
+        {/* Заголовок + кнопка добавления */}
+        {tab !== 'orders' && tab !== 'clients' && (
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-display font-bold text-2xl">
               {tab === 'tools' ? 'Инструменты для аренды' : tab === 'parts' ? 'Комплектующие (продажа)' : 'Спецтехника'}
@@ -203,14 +270,16 @@ export default function Admin() {
             </Button>
           </div>
         )}
-
         {tab === 'orders' && <h2 className="font-display font-bold text-2xl mb-6">Заявки от клиентов</h2>}
+        {tab === 'clients' && <h2 className="font-display font-bold text-2xl mb-6">База клиентов</h2>}
 
         {dataLoading ? (
-          <div className="flex items-center gap-3 text-muted-foreground font-body"><div className="animate-spin w-5 h-5 border-2 border-accent border-t-transparent rounded-full" /> Загрузка...</div>
+          <div className="flex items-center gap-3 text-muted-foreground font-body">
+            <div className="animate-spin w-5 h-5 border-2 border-accent border-t-transparent rounded-full" /> Загрузка...
+          </div>
         ) : (
           <>
-            {/* ТАБЛИЦА ИНСТРУМЕНТОВ / КОМПЛЕКТУЮЩИХ */}
+            {/* ИНСТРУМЕНТЫ / КОМПЛЕКТУЮЩИЕ */}
             {(tab === 'tools' || tab === 'parts') && (
               <div className="bg-background border border-border overflow-x-auto">
                 <table className="w-full font-body text-sm">
@@ -230,7 +299,8 @@ export default function Admin() {
                     {items.map((item) => (
                       <tr key={item.id as number} className="border-b border-border last:border-0 hover:bg-secondary/50 transition-colors">
                         <td className="p-4">
-                          <img src={item.image as string} alt="" className="w-12 h-12 object-cover bg-secondary" onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"><rect width="48" height="48" fill="%23f0f0f0"/></svg>'; }} />
+                          <img src={item.image as string} alt="" className="w-12 h-12 object-cover bg-secondary"
+                            onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"><rect width="48" height="48" fill="%23f0f0f0"/></svg>'; }} />
                         </td>
                         <td className="p-4 font-medium max-w-[220px]">
                           <div className="truncate">{item.name as string}</div>
@@ -261,7 +331,7 @@ export default function Admin() {
               </div>
             )}
 
-            {/* КАРТОЧКИ СПЕЦТЕХНИКИ */}
+            {/* СПЕЦТЕХНИКА */}
             {tab === 'machines' && (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {items.map((m) => (
@@ -324,11 +394,157 @@ export default function Admin() {
                 ))}
               </div>
             )}
+
+            {/* КЛИЕНТЫ */}
+            {tab === 'clients' && (
+              <div className="grid lg:grid-cols-5 gap-6">
+                {/* Список клиентов */}
+                <div className="lg:col-span-2">
+                  <div className="relative mb-3">
+                    <Icon name="Search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input value={clientSearch} onChange={(e) => setClientSearch(e.target.value)} placeholder="Поиск по имени или телефону..." className="pl-9 rounded-none h-10 font-body bg-background text-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    {filteredClients.length === 0 && (
+                      <div className="bg-background border border-border p-8 text-center text-muted-foreground font-body text-sm">
+                        {(data.clients as Client[]).length === 0 ? 'Клиентов пока нет — они появятся после первой заявки' : 'Ничего не найдено'}
+                      </div>
+                    )}
+                    {filteredClients.map((client) => (
+                      <button key={client.id} onClick={() => handleSelectClient(client)}
+                        className={`w-full text-left p-4 border transition-colors ${selectedClient?.id === client.id ? 'bg-foreground text-background border-foreground' : 'bg-background border-border hover:border-foreground/30'}`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className={`font-body font-medium text-sm truncate ${selectedClient?.id === client.id ? 'text-background' : ''}`}>
+                              {client.fullName || <span className="italic opacity-60">Без имени</span>}
+                            </div>
+                            <div className={`font-body text-xs mt-0.5 ${selectedClient?.id === client.id ? 'text-background/70' : 'text-muted-foreground'}`}>
+                              {client.phone}
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className={`font-display font-semibold text-sm ${selectedClient?.id === client.id ? 'text-background' : 'text-accent'}`}>
+                              {client.orderCount} зак.
+                            </div>
+                            {client.totalAmount > 0 && (
+                              <div className={`font-body text-xs ${selectedClient?.id === client.id ? 'text-background/70' : 'text-muted-foreground'}`}>
+                                {client.totalAmount.toLocaleString('ru')} ₽
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Карточка клиента */}
+                <div className="lg:col-span-3">
+                  {!selectedClient ? (
+                    <div className="bg-background border border-border h-64 flex items-center justify-center text-muted-foreground font-body text-sm">
+                      <div className="text-center">
+                        <Icon name="UserCircle" size={40} className="mx-auto mb-3 opacity-30" />
+                        Выберите клиента из списка
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-background border border-border">
+                      {/* Шапка карточки */}
+                      <div className="p-5 border-b border-border flex items-start justify-between gap-4">
+                        <div>
+                          <h3 className="font-display font-bold text-xl mb-0.5">
+                            {selectedClient.fullName || <span className="text-muted-foreground italic">Имя не указано</span>}
+                          </h3>
+                          <div className="font-body text-sm text-muted-foreground">{selectedClient.phone}</div>
+                        </div>
+                        <Button onClick={() => setEditClient({ ...selectedClient })} variant="outline" className="rounded-none font-body text-sm gap-1.5 shrink-0">
+                          <Icon name="Pencil" size={14} /> Редактировать
+                        </Button>
+                      </div>
+
+                      {/* Статистика */}
+                      <div className="grid grid-cols-3 divide-x divide-border border-b border-border">
+                        <div className="p-4 text-center">
+                          <div className="font-display font-bold text-2xl text-accent">{selectedClient.orderCount}</div>
+                          <div className="font-body text-xs text-muted-foreground mt-0.5">заказов</div>
+                        </div>
+                        <div className="p-4 text-center">
+                          <div className="font-display font-bold text-2xl">{selectedClient.totalAmount.toLocaleString('ru')} ₽</div>
+                          <div className="font-body text-xs text-muted-foreground mt-0.5">сумма заказов</div>
+                        </div>
+                        <div className="p-4 text-center">
+                          <div className="font-display font-bold text-lg">
+                            {selectedClient.lastOrder ? new Date(selectedClient.lastOrder).toLocaleDateString('ru') : '—'}
+                          </div>
+                          <div className="font-body text-xs text-muted-foreground mt-0.5">последний заказ</div>
+                        </div>
+                      </div>
+
+                      {/* Даты активности */}
+                      <div className="px-5 py-3 border-b border-border flex gap-6 font-body text-xs text-muted-foreground">
+                        <span>Первый заказ: <strong>{selectedClient.firstOrder ? new Date(selectedClient.firstOrder).toLocaleDateString('ru') : '—'}</strong></span>
+                        <span>Клиент с: <strong>{selectedClient.createdAt ? new Date(selectedClient.createdAt).toLocaleDateString('ru') : '—'}</strong></span>
+                      </div>
+
+                      {/* Заметки */}
+                      {selectedClient.notes && (
+                        <div className="px-5 py-3 border-b border-border bg-secondary">
+                          <div className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1">Заметки</div>
+                          <p className="font-body text-sm">{selectedClient.notes}</p>
+                        </div>
+                      )}
+
+                      {/* История заказов */}
+                      <div className="p-5">
+                        <div className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-3">История заказов</div>
+                        {clientOrdersLoading ? (
+                          <div className="flex items-center gap-2 text-muted-foreground font-body text-sm">
+                            <div className="animate-spin w-4 h-4 border-2 border-accent border-t-transparent rounded-full" /> Загрузка...
+                          </div>
+                        ) : clientOrders.length === 0 ? (
+                          <p className="font-body text-sm text-muted-foreground">Нет заказов</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {clientOrders.map((order) => (
+                              <div key={order.id} className="border border-border p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-body text-xs text-muted-foreground">#{order.id}</span>
+                                    <span className={`px-2 py-0.5 text-xs font-body rounded ${STATUS_COLORS[order.status] || 'bg-secondary text-muted-foreground'}`}>
+                                      {STATUS_LABELS[order.status] || order.status}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <span className="font-display font-semibold">{order.total.toLocaleString('ru')} ₽</span>
+                                    <span className="font-body text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleDateString('ru')}</span>
+                                  </div>
+                                </div>
+                                {order.message && <p className="font-body text-xs text-muted-foreground mb-2 italic">{order.message}</p>}
+                                {order.cart.length > 0 && (
+                                  <div className="space-y-0.5">
+                                    {order.cart.map((ci, i) => (
+                                      <div key={i} className="font-body text-xs flex justify-between text-muted-foreground">
+                                        <span className="truncate mr-2">{ci.name}</span>
+                                        <span className="shrink-0">{ci.qty} шт × {ci.days} дн</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
 
-      {/* МОДАЛКА РЕДАКТИРОВАНИЯ */}
+      {/* МОДАЛКА РЕДАКТИРОВАНИЯ КАТАЛОГА */}
       {editItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-background border border-border w-full max-w-lg max-h-[90vh] overflow-y-auto">
@@ -337,13 +553,10 @@ export default function Admin() {
               <button onClick={() => setEditItem(null)} className="text-muted-foreground hover:text-foreground"><Icon name="X" size={20} /></button>
             </div>
             <div className="p-6 space-y-4">
-
-              {/* Общие поля */}
               <div>
                 <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">Название</label>
                 <Input value={editItem.name as string || ''} onChange={(e) => setField('name', e.target.value)} className="rounded-none font-body" />
               </div>
-
               {tab !== 'machines' && (
                 <>
                   <div className="grid grid-cols-2 gap-3">
@@ -372,7 +585,7 @@ export default function Admin() {
                   </div>
                   <div>
                     <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">Характеристики</label>
-                    <Input value={editItem.specs as string || ''} onChange={(e) => setField('specs', e.target.value)} placeholder="160 Вт · диск 75 мм · гибкий вал" className="rounded-none font-body" />
+                    <Input value={editItem.specs as string || ''} onChange={(e) => setField('specs', e.target.value)} placeholder="160 Вт · диск 75 мм" className="rounded-none font-body" />
                   </div>
                   <div>
                     <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">Тип инструмента</label>
@@ -393,7 +606,6 @@ export default function Admin() {
                   </div>
                 </>
               )}
-
               {tab === 'machines' && (
                 <>
                   <div>
@@ -442,6 +654,38 @@ export default function Admin() {
                 {saving ? 'Сохраняем...' : 'Сохранить'}
               </Button>
               <Button variant="outline" onClick={() => setEditItem(null)} className="rounded-none font-body">Отмена</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* МОДАЛКА РЕДАКТИРОВАНИЯ КЛИЕНТА */}
+      {editClient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-background border border-border w-full max-w-md">
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <h3 className="font-display font-bold text-xl">Редактировать клиента</h3>
+              <button onClick={() => setEditClient(null)} className="text-muted-foreground hover:text-foreground"><Icon name="X" size={20} /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">Телефон</label>
+                <Input value={editClient.phone} disabled className="rounded-none font-body bg-secondary text-muted-foreground" />
+              </div>
+              <div>
+                <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">ФИО</label>
+                <Input value={editClient.fullName} onChange={(e) => setEditClient({ ...editClient, fullName: e.target.value })} placeholder="Иванов Иван Иванович" className="rounded-none font-body" />
+              </div>
+              <div>
+                <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">Заметки</label>
+                <textarea value={editClient.notes} onChange={(e) => setEditClient({ ...editClient, notes: e.target.value })} placeholder="Постоянный клиент, предпочитает самовывоз..." rows={4} className="w-full rounded-none border border-input bg-background px-3 py-2 font-body text-sm resize-none" />
+              </div>
+            </div>
+            <div className="p-6 border-t border-border flex gap-3">
+              <Button onClick={handleSaveClient} disabled={saving} className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground rounded-none font-body">
+                {saving ? 'Сохраняем...' : 'Сохранить'}
+              </Button>
+              <Button variant="outline" onClick={() => setEditClient(null)} className="rounded-none font-body">Отмена</Button>
             </div>
           </div>
         </div>

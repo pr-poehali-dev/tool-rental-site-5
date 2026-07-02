@@ -337,7 +337,7 @@ export default function Index() {
             <div>
               <div className="font-body text-sm uppercase tracking-widest text-accent mb-3">Магазин</div>
               <h2 className="font-display font-bold text-5xl md:text-6xl tracking-tight">Комплектующие</h2>
-              <p className="font-body text-muted-foreground mt-3">Расходники и оснастка — продажа, не аренда</p>
+
             </div>
             <div className="relative w-full max-w-xs">
               <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
