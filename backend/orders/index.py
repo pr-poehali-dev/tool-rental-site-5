@@ -21,6 +21,8 @@ STATUS_LABELS = {
     'rejected': 'Отклонена',
 }
 
+ADMIN_EMAIL = 'stroy_rent@list.ru'
+
 
 def get_conn():
     return psycopg2.connect(os.environ['DATABASE_URL'], options=f"-c search_path={os.environ['MAIN_DB_SCHEMA']}")
@@ -135,6 +137,51 @@ def notify_status_change(phone, email, order_id, name, status, cart, reject_reas
     send_email(email, f"Строй_Rent — заявка №{order_id}: {STATUS_LABELS.get(status, status)}", text)
 
 
+def notify_admin_new_order(order_id, name, phone, email, cart, message, delivery_method, delivery_address, receive_date, receive_time, payment_method):
+    """Уведомляет администратора на почту о новом заказе с сайта."""
+    site_url = os.environ.get('SITE_URL', '').rstrip('/')
+    link = f"{site_url}/order/{order_id}" if site_url else ''
+
+    lines = [f"Новая заявка №{order_id} с сайта Строй_Rent", '']
+    lines.append(f"Клиент: {name}")
+    lines.append(f"Телефон: {phone}")
+    if email:
+        lines.append(f"Email: {email}")
+    lines.append(f"Способ получения: {'Доставка' if delivery_method == 'delivery' else 'Самовывоз'}")
+    if delivery_method == 'delivery' and delivery_address:
+        lines.append(f"Адрес доставки: {delivery_address}")
+    if receive_date:
+        lines.append(f"Дата получения: {receive_date}{f', {receive_time}' if receive_time else ''}")
+    payment_labels = {'cash': 'Наличными', 'card': 'Картой при получении', 'transfer': 'Перевод по счёту'}
+    lines.append(f"Оплата: {payment_labels.get(payment_method, payment_method)}")
+    if message:
+        lines.append(f"Комментарий клиента: {message}")
+
+    items = cart or []
+    if items:
+        lines.append('')
+        lines.append('Состав заказа:')
+        total = 0
+        for item in items:
+            try:
+                qty = int(item.get('qty', 0) or 0)
+                days = int(item.get('days', 0) or 0)
+                price = int(item.get('price', 0) or 0)
+                sum_item = qty * days * price
+                total += sum_item
+                lines.append(f"— {item.get('name', '')}: {qty} шт × {days} дн × {price} ₽ = {sum_item} ₽")
+            except Exception:
+                pass
+        lines.append(f"Итого: {total} ₽")
+
+    if link:
+        lines.append('')
+        lines.append(f"Ссылка на заявку: {link}")
+
+    text = '\n'.join(lines)
+    send_email(ADMIN_EMAIL, f"Новая заявка №{order_id} — {name}", text)
+
+
 def handler(event: dict, context) -> dict:
     """Заявки: POST — создать (публично). GET — список для администратора либо публичная карточка заказа
     по id (?public=1&id=...). PUT/DELETE — для администратора: смена статуса, авто-списание/возврат остатков
@@ -210,6 +257,15 @@ def handler(event: dict, context) -> dict:
         conn.commit()
         cur.close()
         conn.close()
+
+        notify_admin_new_order(
+            new_id, name, phone, body.get('email', ''),
+            body.get('cart', []), body.get('message', ''),
+            body.get('deliveryMethod', 'pickup'), body.get('deliveryAddress', ''),
+            body.get('receiveDate') or '', body.get('receiveTime', ''),
+            body.get('paymentMethod', 'cash'),
+        )
+
         return {'statusCode': 201, 'headers': HEADERS, 'body': json.dumps({'id': new_id, 'ok': True})}
 
     token = (event.get('headers') or {}).get('X-Authorization', '') or (event.get('headers') or {}).get('X-Admin-Token', '')
