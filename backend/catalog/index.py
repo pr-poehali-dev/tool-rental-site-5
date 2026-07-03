@@ -28,7 +28,7 @@ def handler(event: dict, context) -> dict:
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT id, name, category, price, image, images, stock, total_stock, specs, tool_type, material
+        SELECT id, name, category, price, image, images, stock, total_stock, specs, tool_type, material, deposit
         FROM tools WHERE active = true ORDER BY category, name
     """)
     tools = []
@@ -40,6 +40,7 @@ def handler(event: dict, context) -> dict:
             'images': imgs,
             'stock': row[6], 'totalStock': row[7],
             'specs': row[8], 'toolType': row[9], 'material': row[10] or [],
+            'deposit': row[11],
         })
 
     cur.execute("""

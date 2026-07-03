@@ -19,6 +19,7 @@ interface Tool {
   specs: string;
   toolType: string;
   material: string[];
+  deposit: number;
 }
 
 interface Part {
@@ -340,6 +341,9 @@ export default function Index() {
                       <div>
                         <span className="font-display font-bold text-2xl">{tool.price} ₽</span>
                         <span className="font-body text-xs text-muted-foreground"> / сутки</span>
+                        {tool.deposit > 0 && (
+                          <div className="font-body text-xs text-muted-foreground mt-0.5">Залог: {tool.deposit.toLocaleString('ru')} ₽</div>
+                        )}
                       </div>
                       <Button onClick={() => addToCart(tool)} size="icon" disabled={tool.stock === 0} className="bg-accent hover:bg-accent/90 text-accent-foreground rounded-none h-10 w-10 disabled:opacity-40">
                         <Icon name="Plus" size={18} />
@@ -592,6 +596,10 @@ export default function Index() {
             <div className="flex items-center gap-2"><Icon name="Check" size={16} className="text-accent" /> Залог возвращается</div>
             <div className="flex items-center gap-2"><Icon name="Check" size={16} className="text-accent" /> Продление в любой момент</div>
           </div>
+          <p className="mt-6 font-body text-sm text-muted-foreground max-w-2xl">
+            Залог за инструмент фиксирован для каждой позиции и указан в карточке товара под ценой аренды.
+            Сумма вносится при получении и полностью возвращается при сдаче инструмента в исправном состоянии.
+          </p>
         </div>
       </section>
 

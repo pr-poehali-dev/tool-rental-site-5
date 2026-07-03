@@ -126,7 +126,7 @@ def handler(event: dict, context) -> dict:
                                 'stock': r[6], 'specs': r[7], 'toolType': r[8],
                                 'material': r[9] or [], 'active': r[10]})
         else:
-            cur.execute("SELECT id, name, category, price, image, images, stock, total_stock, specs, tool_type, material, active FROM tools ORDER BY category, name")
+            cur.execute("SELECT id, name, category, price, image, images, stock, total_stock, specs, tool_type, material, active, deposit FROM tools ORDER BY category, name")
             rows = cur.fetchall()
             result = []
             for r in rows:
@@ -134,7 +134,8 @@ def handler(event: dict, context) -> dict:
                 result.append({'id': r[0], 'name': r[1], 'category': r[2], 'price': r[3],
                                 'image': imgs[0] if imgs else '', 'images': imgs,
                                 'stock': r[6], 'totalStock': r[7], 'specs': r[8],
-                                'toolType': r[9], 'material': r[10] or [], 'active': r[11]})
+                                'toolType': r[9], 'material': r[10] or [], 'active': r[11],
+                                'deposit': r[12]})
 
         cur.close()
         conn.close()
@@ -161,9 +162,9 @@ def handler(event: dict, context) -> dict:
             )
         else:
             cur.execute(
-                "INSERT INTO tools (name, category, price, image, images, stock, total_stock, specs, tool_type, material) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+                "INSERT INTO tools (name, category, price, image, images, stock, total_stock, specs, tool_type, material, deposit) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
                 (body.get('name',''), body.get('category',''), body.get('price',0), main_image, images,
-                 body.get('stock',0), body.get('totalStock',0), body.get('specs',''), body.get('toolType',''), body.get('material',[]))
+                 body.get('stock',0), body.get('totalStock',0), body.get('specs',''), body.get('toolType',''), body.get('material',[]), body.get('deposit',0))
             )
         new_id = cur.fetchone()[0]
         conn.commit()
@@ -193,10 +194,10 @@ def handler(event: dict, context) -> dict:
             )
         else:
             cur.execute(
-                "UPDATE tools SET name=%s, category=%s, price=%s, image=%s, images=%s, stock=%s, total_stock=%s, specs=%s, tool_type=%s, material=%s, active=%s, updated_at=NOW() WHERE id=%s",
+                "UPDATE tools SET name=%s, category=%s, price=%s, image=%s, images=%s, stock=%s, total_stock=%s, specs=%s, tool_type=%s, material=%s, active=%s, deposit=%s, updated_at=NOW() WHERE id=%s",
                 (body.get('name'), body.get('category'), body.get('price'), main_image, images,
                  body.get('stock'), body.get('totalStock'), body.get('specs'), body.get('toolType'),
-                 body.get('material',[]), body.get('active', True), item_id)
+                 body.get('material',[]), body.get('active', True), body.get('deposit', 0), item_id)
             )
         conn.commit()
         cur.close()

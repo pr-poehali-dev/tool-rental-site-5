@@ -53,6 +53,7 @@ export default function AdminCatalogSection({
                 <th className="text-left p-4 text-muted-foreground font-normal">Название</th>
                 <th className="text-left p-4 text-muted-foreground font-normal">Категория</th>
                 <th className="text-left p-4 text-muted-foreground font-normal">Цена</th>
+                {tab === 'tools' && <th className="text-left p-4 text-muted-foreground font-normal">Залог</th>}
                 <th className="text-left p-4 text-muted-foreground font-normal">В наличии</th>
                 {tab === 'tools' && <th className="text-left p-4 text-muted-foreground font-normal">Всего</th>}
                 <th className="text-left p-4 text-muted-foreground font-normal">Статус</th>
@@ -72,6 +73,7 @@ export default function AdminCatalogSection({
                   </td>
                   <td className="p-4 text-muted-foreground">{item.category as string}</td>
                   <td className="p-4 font-display font-semibold">{item.price as number} ₽</td>
+                  {tab === 'tools' && <td className="p-4 text-muted-foreground">{(item.deposit as number) > 0 ? `${item.deposit as number} ₽` : '—'}</td>}
                   <td className="p-4">
                     <span className={`font-semibold ${(item.stock as number) > 0 ? 'text-green-700' : 'text-red-500'}`}>{item.stock as number}</span>
                   </td>
@@ -153,6 +155,12 @@ export default function AdminCatalogSection({
                       </div>
                     )}
                   </div>
+                  {tab === 'tools' && (
+                    <div>
+                      <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">Залог за единицу (₽)</label>
+                      <Input type="number" value={editItem.deposit as number || 0} onChange={(e) => setField('deposit', parseInt(e.target.value) || 0)} placeholder="0 — без залога" className="rounded-none font-body" />
+                    </div>
+                  )}
                   <div>
                     <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">Характеристики</label>
                     <Input value={editItem.specs as string || ''} onChange={(e) => setField('specs', e.target.value)} placeholder="160 Вт · диск 75 мм" className="rounded-none font-body" />
