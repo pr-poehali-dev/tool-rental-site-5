@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -73,6 +74,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function Index() {
+  const navigate = useNavigate();
   // Данные из БД
   const [tools, setTools] = useState<Tool[]>([]);
   const [parts, setParts] = useState<Part[]>([]);
@@ -96,8 +98,17 @@ export default function Index() {
   const [showAllMachines, setShowAllMachines] = useState(false);
 
   // Корзина
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('cart');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [cartOpen, setCartOpen] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('cart', JSON.stringify(cart));
+  }, [cart]);
 
   // Экскаватор
   const [excavatorAttachments, setExcavatorAttachments] = useState<string[]>([]);
@@ -157,7 +168,7 @@ export default function Index() {
     if (!orderName || !orderPhone) return;
     setOrderSending(true);
     const cartData = cart.map((i) => ({ id: i.tool.id, name: i.tool.name, price: i.tool.price, days: i.days, qty: i.qty }));
-    await submitOrder({ name: orderName, phone: orderPhone, message: orderMessage, cart: cartData });
+    await submitOrder({ name: orderName, phone: orderPhone, message: orderMessage, cart: cartData, deliveryMethod: 'pickup', paymentMethod: 'cash' });
     setOrderSending(false);
     setOrderSent(true);
     setCart([]);
@@ -714,7 +725,7 @@ export default function Index() {
                   <span className="font-body text-muted-foreground">Итого</span>
                   <span className="font-display font-bold text-3xl">{total} ₽</span>
                 </div>
-                <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground rounded-none h-14 font-body text-base" onClick={() => { setCartOpen(false); scrollTo('contacts'); }}>
+                <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground rounded-none h-14 font-body text-base" onClick={() => { setCartOpen(false); navigate('/checkout'); }}>
                   Оформить заявку <Icon name="ArrowRight" size={18} className="ml-2" />
                 </Button>
               </div>

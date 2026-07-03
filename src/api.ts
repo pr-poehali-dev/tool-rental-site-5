@@ -9,7 +9,20 @@ export async function getCatalog() {
   return res.json();
 }
 
-export async function submitOrder(data: { name: string; phone: string; message: string; cart: unknown[] }) {
+export interface SubmitOrderData {
+  name: string;
+  phone: string;
+  email?: string;
+  message: string;
+  cart: unknown[];
+  deliveryMethod: 'pickup' | 'delivery';
+  deliveryAddress?: string;
+  receiveDate?: string;
+  receiveTime?: string;
+  paymentMethod: 'cash' | 'card' | 'transfer';
+}
+
+export async function submitOrder(data: SubmitOrderData) {
   const res = await fetch(ORDERS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

@@ -53,9 +53,18 @@ def handler(event: dict, context) -> dict:
         phone = body.get('phone', '')
         cur = conn.cursor()
         cur.execute(
-            "INSERT INTO orders (name, phone, message, cart) VALUES (%s, %s, %s, %s) RETURNING id",
+            """INSERT INTO orders
+               (name, phone, message, cart, delivery_method, delivery_address,
+                receive_date, receive_time, payment_method, email)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
             (name, phone, body.get('message', ''),
-             json.dumps(body.get('cart', []), ensure_ascii=False))
+             json.dumps(body.get('cart', []), ensure_ascii=False),
+             body.get('deliveryMethod', 'pickup'),
+             body.get('deliveryAddress', ''),
+             body.get('receiveDate') or None,
+             body.get('receiveTime', ''),
+             body.get('paymentMethod', 'cash'),
+             body.get('email', ''))
         )
         new_id = cur.fetchone()[0]
         if phone:
@@ -84,7 +93,8 @@ def handler(event: dict, context) -> dict:
         show_archived = params.get('archived') == '1'
         cur = conn.cursor()
         cur.execute("""
-            SELECT id, name, phone, message, cart, status, created_at, due_at, archived, extensions
+            SELECT id, name, phone, message, cart, status, created_at, due_at, archived, extensions,
+                   delivery_method, delivery_address, receive_date, receive_time, payment_method, email
             FROM orders WHERE archived = %s ORDER BY created_at DESC LIMIT 200
         """, (show_archived,))
         rows = cur.fetchall()
@@ -92,7 +102,10 @@ def handler(event: dict, context) -> dict:
             {'id': r[0], 'name': r[1], 'phone': r[2], 'message': r[3],
              'cart': r[4], 'status': r[5], 'createdAt': r[6].isoformat(),
              'dueAt': r[7].isoformat() if r[7] else None,
-             'archived': r[8], 'extensions': r[9] or []}
+             'archived': r[8], 'extensions': r[9] or [],
+             'deliveryMethod': r[10], 'deliveryAddress': r[11],
+             'receiveDate': r[12].isoformat() if r[12] else None,
+             'receiveTime': r[13], 'paymentMethod': r[14], 'email': r[15]}
             for r in rows
         ]
         cur.close()

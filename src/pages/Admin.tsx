@@ -460,6 +460,35 @@ export default function Admin() {
                           </div>
                         )}
                       </div>
+                      {(order.deliveryMethod || order.paymentMethod || order.receiveDate) && (
+                        <div className="flex flex-wrap gap-4 mb-3 font-body text-xs text-muted-foreground">
+                          {order.deliveryMethod && (
+                            <span className="flex items-center gap-1.5">
+                              <Icon name={order.deliveryMethod === 'delivery' ? 'Truck' : 'Store'} size={13} />
+                              {order.deliveryMethod === 'delivery' ? 'Доставка' : 'Самовывоз'}
+                              {order.deliveryMethod === 'delivery' && order.deliveryAddress ? `: ${order.deliveryAddress as string}` : ''}
+                            </span>
+                          )}
+                          {order.receiveDate && (
+                            <span className="flex items-center gap-1.5">
+                              <Icon name="Calendar" size={13} />
+                              {new Date(order.receiveDate as string).toLocaleDateString('ru')}
+                              {order.receiveTime ? `, ${order.receiveTime as string}` : ''}
+                            </span>
+                          )}
+                          {order.paymentMethod && (
+                            <span className="flex items-center gap-1.5">
+                              <Icon name="Wallet" size={13} />
+                              {order.paymentMethod === 'cash' ? 'Наличными' : order.paymentMethod === 'card' ? 'Картой при получении' : 'Перевод по счёту'}
+                            </span>
+                          )}
+                          {order.email && (
+                            <span className="flex items-center gap-1.5">
+                              <Icon name="Mail" size={13} /> {order.email as string}
+                            </span>
+                          )}
+                        </div>
+                      )}
                       {order.message && <p className="font-body text-sm bg-secondary px-3 py-2 mb-3">{order.message as string}</p>}
                       {Array.isArray(order.cart) && (order.cart as unknown[]).length > 0 && (
                         <div>
