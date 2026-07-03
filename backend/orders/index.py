@@ -87,7 +87,11 @@ def build_message(order_id, name, status, cart, reject_reason=''):
 
 def send_sms(phone: str, text: str):
     api_id = os.environ.get('SMS_RU_API_ID', '')
-    if not api_id or not phone:
+    if not api_id:
+        print('SMS не отправлено: не задан секрет SMS_RU_API_ID')
+        return
+    if not phone:
+        print('SMS не отправлено: у заявки не указан телефон')
         return
     try:
         digits = ''.join(ch for ch in phone if ch.isdigit())
@@ -100,9 +104,11 @@ def send_sms(phone: str, text: str):
             'json': 1,
         })
         url = f"https://sms.ru/sms/send?{params}"
-        urllib.request.urlopen(url, timeout=10)
-    except Exception:
-        pass
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            resp_body = resp.read().decode('utf-8', errors='replace')
+            print(f'SMS.RU ответ: {resp_body}')
+    except Exception as e:
+        print(f'Ошибка отправки SMS: {e}')
 
 
 def send_email(to_email: str, subject: str, text: str):
@@ -110,7 +116,12 @@ def send_email(to_email: str, subject: str, text: str):
     port = os.environ.get('SMTP_PORT', '')
     user = os.environ.get('SMTP_USER', '')
     password = os.environ.get('SMTP_PASSWORD', '')
-    if not (host and port and user and password and to_email):
+    missing = [n for n, v in [('SMTP_HOST', host), ('SMTP_PORT', port), ('SMTP_USER', user), ('SMTP_PASSWORD', password)] if not v]
+    if missing:
+        print(f'Email не отправлен: не заданы секреты {", ".join(missing)}')
+        return
+    if not to_email:
+        print('Email не отправлен: у заявки не указан email клиента')
         return
     try:
         msg = MIMEText(text, 'plain', 'utf-8')
@@ -127,8 +138,9 @@ def send_email(to_email: str, subject: str, text: str):
                 server.starttls()
                 server.login(user, password)
                 server.sendmail(user, [to_email], msg.as_string())
-    except Exception:
-        pass
+        print(f'Email успешно отправлен на {to_email}')
+    except Exception as e:
+        print(f'Ошибка отправки email на {to_email}: {e}')
 
 
 def notify_status_change(phone, email, order_id, name, status, cart, reject_reason=''):
