@@ -291,13 +291,13 @@ export default function Index() {
 
           {/* Сетка */}
           {loading ? (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="bg-card p-6 animate-pulse">
-                  <div className="aspect-square bg-secondary mb-4" />
-                  <div className="h-4 bg-secondary rounded mb-2 w-1/3" />
-                  <div className="h-6 bg-secondary rounded mb-2" />
-                  <div className="h-4 bg-secondary rounded w-2/3" />
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="bg-card p-4 animate-pulse">
+                  <div className="aspect-square bg-secondary mb-3" />
+                  <div className="h-3 bg-secondary rounded mb-2 w-1/3" />
+                  <div className="h-5 bg-secondary rounded mb-2" />
+                  <div className="h-3 bg-secondary rounded w-2/3" />
                 </div>
               ))}
             </div>
@@ -309,29 +309,29 @@ export default function Index() {
             </div>
           ) : (
             <>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border">
                 {(showAllTools ? filtered : filtered.slice(0, PAGE_LIMIT)).map((tool) => (
-                  <div key={tool.id} className="group bg-card p-6 flex flex-col">
+                  <div key={tool.id} className="group bg-card p-4 flex flex-col">
                     <ImageSlider
                       images={tool.images?.length ? tool.images : [tool.image]}
                       alt={tool.name}
-                      className="aspect-square bg-secondary mb-4"
+                      className="aspect-square bg-secondary mb-3"
                     />
                     <div className="font-body text-xs uppercase tracking-widest text-muted-foreground mb-1">{tool.category}</div>
-                    <h3 className="font-display font-semibold text-xl leading-snug mb-2">{tool.name}</h3>
+                    <h3 className="font-display font-semibold text-base leading-snug mb-2">{tool.name}</h3>
                     <p className="font-body text-xs text-muted-foreground mb-3">{tool.specs}</p>
                     {tool.material.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-4">
+                      <div className="flex flex-wrap gap-1 mb-3">
                         {tool.material.map((m) => <span key={m} className="font-body text-xs px-2 py-0.5 bg-secondary border border-border text-muted-foreground">{m}</span>)}
                       </div>
                     )}
                     <div className="mt-auto flex items-end justify-between">
                       <div>
-                        <span className="font-display font-bold text-3xl">{tool.price} ₽</span>
-                        <span className="font-body text-sm text-muted-foreground"> / сутки</span>
+                        <span className="font-display font-bold text-2xl">{tool.price} ₽</span>
+                        <span className="font-body text-xs text-muted-foreground"> / сутки</span>
                       </div>
-                      <Button onClick={() => addToCart(tool)} size="icon" disabled={tool.stock === 0} className="bg-accent hover:bg-accent/90 text-accent-foreground rounded-none h-12 w-12 disabled:opacity-40">
-                        <Icon name="Plus" size={20} />
+                      <Button onClick={() => addToCart(tool)} size="icon" disabled={tool.stock === 0} className="bg-accent hover:bg-accent/90 text-accent-foreground rounded-none h-10 w-10 disabled:opacity-40">
+                        <Icon name="Plus" size={18} />
                       </Button>
                     </div>
                     {tool.stock === 0 && <p className="font-body text-xs text-destructive mt-2">Нет в наличии</p>}
@@ -376,12 +376,12 @@ export default function Index() {
           </div>
 
           {loading ? (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="bg-card p-6 animate-pulse">
-                  <div className="aspect-square bg-secondary mb-4" />
-                  <div className="h-6 bg-secondary rounded mb-2" />
-                  <div className="h-4 bg-secondary rounded w-2/3" />
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-card p-4 animate-pulse">
+                  <div className="aspect-square bg-secondary mb-3" />
+                  <div className="h-5 bg-secondary rounded mb-2" />
+                  <div className="h-3 bg-secondary rounded w-2/3" />
                 </div>
               ))}
             </div>
@@ -392,28 +392,28 @@ export default function Index() {
             </div>
           ) : (
             <>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border">
                 {(showAllParts ? filteredParts : filteredParts.slice(0, PAGE_LIMIT)).map((part) => (
-                  <div key={part.id} className="group bg-card p-6 flex flex-col">
+                  <div key={part.id} className="group bg-card p-4 flex flex-col">
                     <ImageSlider
                       images={part.images?.length ? part.images : [part.image]}
                       alt={part.name}
-                      className="aspect-square bg-secondary mb-4"
+                      className="aspect-square bg-secondary mb-3"
                     />
                     <div className="font-body text-xs uppercase tracking-widest text-muted-foreground mb-1">{part.category}</div>
-                    <h3 className="font-display font-semibold text-xl leading-snug mb-2">{part.name}</h3>
+                    <h3 className="font-display font-semibold text-base leading-snug mb-2">{part.name}</h3>
                     <p className="font-body text-xs text-muted-foreground mb-3">{part.specs}</p>
                     {part.material.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-4">
+                      <div className="flex flex-wrap gap-1 mb-3">
                         {part.material.map((m) => <span key={m} className="font-body text-xs px-2 py-0.5 bg-secondary border border-border text-muted-foreground">{m}</span>)}
                       </div>
                     )}
-                    <div className="mt-auto flex items-end justify-between pt-4 border-t border-border">
+                    <div className="mt-auto flex items-end justify-between pt-3 border-t border-border">
                       <div>
-                        <span className="font-display font-bold text-3xl">{part.price} ₽</span>
-                        <span className="font-body text-sm text-muted-foreground"> / шт</span>
+                        <span className="font-display font-bold text-2xl">{part.price} ₽</span>
+                        <span className="font-body text-xs text-muted-foreground"> / шт</span>
                       </div>
-                      <Button onClick={() => scrollTo('contacts')} className="bg-accent hover:bg-accent/90 text-accent-foreground rounded-none h-10 px-4 font-body text-sm">
+                      <Button onClick={() => scrollTo('contacts')} className="bg-accent hover:bg-accent/90 text-accent-foreground rounded-none h-9 px-3 font-body text-xs">
                         Заказать
                       </Button>
                     </div>
