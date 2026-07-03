@@ -101,6 +101,23 @@ export async function extendOrder(token: string, id: number, extraDays: number, 
   return res.json();
 }
 
+export async function rejectOrder(token: string, id: number, reason: string) {
+  const res = await fetch(ORDERS_URL, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+    body: JSON.stringify({ id, action: 'reject', reason }),
+  });
+  return res.json();
+}
+
+export async function deleteOrder(token: string, id: number) {
+  const res = await fetch(`${ORDERS_URL}?id=${id}`, {
+    method: 'DELETE',
+    headers: { 'X-Admin-Token': token },
+  });
+  return res.json();
+}
+
 export async function getClients(token: string) {
   const res = await fetch(CLIENTS_URL, { headers: { 'X-Admin-Token': token } });
   return res.json();

@@ -4,6 +4,7 @@ import Icon from '@/components/ui/icon';
 import {
   adminLogin, checkAdminToken, adminGet, adminCreate, adminUpdate, adminDelete,
   getOrders, updateOrderStatus, extendOrder as extendOrderApi, getClients, getClientOrders, updateClient,
+  rejectOrder as rejectOrderApi, deleteOrder as deleteOrderApi,
 } from '@/api';
 import AdminLoginScreen from '@/components/admin/AdminLoginScreen';
 import AdminCatalogSection from '@/components/admin/AdminCatalogSection';
@@ -65,6 +66,12 @@ export default function Admin() {
   const [extendDays, setExtendDays] = useState(1);
   const [extendAmount, setExtendAmount] = useState(0);
   const [extendSaving, setExtendSaving] = useState(false);
+
+  // Заявки — отклонение + удаление
+  const [rejectOrderItem, setRejectOrderItem] = useState<Record<string, unknown> | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectSaving, setRejectSaving] = useState(false);
+  const [deleteOrderId, setDeleteOrderId] = useState<number | null>(null);
 
   // Каталог — редактирование
   const [editItem, setEditItem] = useState<Record<string, unknown> | null>(null);
@@ -175,6 +182,28 @@ export default function Admin() {
     await extendOrderApi(token, extendOrderItem.id as number, extendDays, extendAmount);
     setExtendSaving(false);
     setExtendOrderItem(null);
+    const updated = await getOrders(token, showArchived);
+    setData((prev) => ({ ...prev, orders: Array.isArray(updated) ? updated : [] }));
+  };
+
+  const openReject = (order: Record<string, unknown>) => {
+    setRejectOrderItem(order);
+    setRejectReason('');
+  };
+
+  const handleRejectSave = async () => {
+    if (!rejectOrderItem || !rejectReason.trim()) return;
+    setRejectSaving(true);
+    await rejectOrderApi(token, rejectOrderItem.id as number, rejectReason.trim());
+    setRejectSaving(false);
+    setRejectOrderItem(null);
+    const updated = await getOrders(token, showArchived);
+    setData((prev) => ({ ...prev, orders: Array.isArray(updated) ? updated : [] }));
+  };
+
+  const handleDeleteOrder = async (id: number) => {
+    await deleteOrderApi(token, id);
+    setDeleteOrderId(null);
     const updated = await getOrders(token, showArchived);
     setData((prev) => ({ ...prev, orders: Array.isArray(updated) ? updated : [] }));
   };
@@ -305,6 +334,16 @@ export default function Admin() {
                 setExtendAmount={setExtendAmount}
                 extendSaving={extendSaving}
                 handleExtendSave={handleExtendSave}
+                openReject={openReject}
+                rejectOrderItem={rejectOrderItem}
+                setRejectOrderItem={setRejectOrderItem}
+                rejectReason={rejectReason}
+                setRejectReason={setRejectReason}
+                rejectSaving={rejectSaving}
+                handleRejectSave={handleRejectSave}
+                deleteOrderId={deleteOrderId}
+                setDeleteOrderId={setDeleteOrderId}
+                handleDeleteOrder={handleDeleteOrder}
               />
             )}
 

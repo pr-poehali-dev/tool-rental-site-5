@@ -5,7 +5,7 @@ import psycopg2
 
 HEADERS = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Token',
     'Content-Type': 'application/json',
 }
@@ -39,8 +39,9 @@ def adjust_stock(cur, cart, direction):
             )
 
 def handler(event: dict, context) -> dict:
-    """Заявки: POST — создать (публично). GET/PUT — для администратора: смена статуса,
-    авто-списание/возврат остатков инструментов, продление аренды, архивация возвращённых заявок."""
+    """Заявки: POST — создать (публично). GET/PUT/DELETE — для администратора: смена статуса,
+    авто-списание/возврат остатков инструментов, продление аренды, отклонение с комментарием,
+    архивация возвращённых заявок, полное удаление заявки."""
     if event.get('httpMethod') == 'OPTIONS':
         return {'statusCode': 200, 'headers': HEADERS, 'body': ''}
 
@@ -94,7 +95,8 @@ def handler(event: dict, context) -> dict:
         cur = conn.cursor()
         cur.execute("""
             SELECT id, name, phone, message, cart, status, created_at, due_at, archived, extensions,
-                   delivery_method, delivery_address, receive_date, receive_time, payment_method, email
+                   delivery_method, delivery_address, receive_date, receive_time, payment_method, email,
+                   reject_reason
             FROM orders WHERE archived = %s ORDER BY created_at DESC LIMIT 200
         """, (show_archived,))
         rows = cur.fetchall()
@@ -105,7 +107,8 @@ def handler(event: dict, context) -> dict:
              'archived': r[8], 'extensions': r[9] or [],
              'deliveryMethod': r[10], 'deliveryAddress': r[11],
              'receiveDate': r[12].isoformat() if r[12] else None,
-             'receiveTime': r[13], 'paymentMethod': r[14], 'email': r[15]}
+             'receiveTime': r[13], 'paymentMethod': r[14], 'email': r[15],
+             'rejectReason': r[16]}
             for r in rows
         ]
         cur.close()
@@ -141,6 +144,24 @@ def handler(event: dict, context) -> dict:
             cur.close(); conn.close()
             return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps({'ok': True})}
 
+        if action == 'reject':
+            reason = body.get('reason', '')
+            cur.execute("SELECT cart, status FROM orders WHERE id = %s", (order_id,))
+            row = cur.fetchone()
+            if not row:
+                cur.close(); conn.close()
+                return {'statusCode': 404, 'headers': HEADERS, 'body': json.dumps({'error': 'Заявка не найдена'})}
+            cart, prev_status = row
+            if prev_status == 'done':
+                adjust_stock(cur, cart, +1)
+            cur.execute(
+                "UPDATE orders SET status='rejected', reject_reason=%s, archived=true WHERE id=%s",
+                (reason, order_id)
+            )
+            conn.commit()
+            cur.close(); conn.close()
+            return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps({'ok': True})}
+
         status = body.get('status', 'new')
         cur.execute("SELECT cart, status, due_at FROM orders WHERE id = %s", (order_id,))
         row = cur.fetchone()
@@ -163,6 +184,25 @@ def handler(event: dict, context) -> dict:
         else:
             cur.execute("UPDATE orders SET status=%s WHERE id=%s", (status, order_id))
 
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps({'ok': True})}
+
+    if method == 'DELETE':
+        params = event.get('queryStringParameters') or {}
+        order_id = params.get('id')
+        if not order_id:
+            conn.close()
+            return {'statusCode': 400, 'headers': HEADERS, 'body': json.dumps({'error': 'id required'})}
+        cur = conn.cursor()
+        cur.execute("SELECT cart, status FROM orders WHERE id = %s", (order_id,))
+        row = cur.fetchone()
+        if row:
+            cart, status = row
+            if status == 'done':
+                adjust_stock(cur, cart, +1)
+            cur.execute("DELETE FROM orders WHERE id = %s", (order_id,))
         conn.commit()
         cur.close()
         conn.close()

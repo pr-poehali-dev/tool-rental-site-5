@@ -4,8 +4,8 @@ import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
 
 const STATUS_SWITCH: string[] = ['new', 'processing', 'done'];
-const STATUS_LABELS: Record<string, string> = { new: 'Новая', processing: 'В работе', done: 'Выполнена', returned: 'Возвращена' };
-const STATUS_COLORS: Record<string, string> = { new: 'bg-blue-100 text-blue-700', processing: 'bg-amber-100 text-amber-700', done: 'bg-green-100 text-green-700', returned: 'bg-gray-200 text-gray-600' };
+const STATUS_LABELS: Record<string, string> = { new: 'Новая', processing: 'В работе', done: 'Выполнена', returned: 'Возвращена', rejected: 'Отклонена' };
+const STATUS_COLORS: Record<string, string> = { new: 'bg-blue-100 text-blue-700', processing: 'bg-amber-100 text-amber-700', done: 'bg-green-100 text-green-700', returned: 'bg-gray-200 text-gray-600', rejected: 'bg-red-100 text-red-700' };
 
 function OrderCountdown({ dueAt }: { dueAt: string }) {
   const [now, setNow] = useState(Date.now());
@@ -44,12 +44,24 @@ interface AdminOrdersSectionProps {
   setExtendAmount: (v: number) => void;
   extendSaving: boolean;
   handleExtendSave: () => void;
+  openReject: (order: Record<string, unknown>) => void;
+  rejectOrderItem: Record<string, unknown> | null;
+  setRejectOrderItem: (item: Record<string, unknown> | null) => void;
+  rejectReason: string;
+  setRejectReason: (v: string) => void;
+  rejectSaving: boolean;
+  handleRejectSave: () => void;
+  deleteOrderId: number | null;
+  setDeleteOrderId: (id: number | null) => void;
+  handleDeleteOrder: (id: number) => void;
 }
 
 export default function AdminOrdersSection({
   items, showArchived, setShowArchived, handleOrderStatus, openExtend,
   extendOrderItem, setExtendOrderItem, extendDays, setExtendDays,
   extendAmount, setExtendAmount, extendSaving, handleExtendSave,
+  openReject, rejectOrderItem, setRejectOrderItem, rejectReason, setRejectReason,
+  rejectSaving, handleRejectSave, deleteOrderId, setDeleteOrderId, handleDeleteOrder,
 }: AdminOrdersSectionProps) {
   return (
     <>
@@ -109,9 +121,26 @@ export default function AdminOrdersSection({
                         </button>
                       </>
                     )}
+                    {status !== 'rejected' && status !== 'returned' && (
+                      <button onClick={() => openReject(order)}
+                        className="font-body text-xs px-3 py-1.5 border border-border text-muted-foreground hover:border-red-500 hover:text-red-600 transition-colors flex items-center gap-1.5">
+                        <Icon name="Ban" size={13} /> Отклонить заявку
+                      </button>
+                    )}
                   </div>
                 )}
+                <button onClick={() => setDeleteOrderId(order.id as number)}
+                  className="p-2 hover:bg-destructive/10 text-destructive border border-border rounded transition-colors shrink-0"
+                  title="Удалить заявку полностью">
+                  <Icon name="Trash2" size={15} />
+                </button>
               </div>
+              {status === 'rejected' && (order.rejectReason as string) && (
+                <div className="flex items-start gap-2 bg-red-50 border border-red-200 px-3 py-2 mb-3">
+                  <Icon name="Ban" size={14} className="text-red-600 mt-0.5 shrink-0" />
+                  <p className="font-body text-xs text-red-700"><strong>Причина отклонения:</strong> {order.rejectReason as string}</p>
+                </div>
+              )}
               {(order.deliveryMethod || order.paymentMethod || order.receiveDate) && (
                 <div className="flex flex-wrap gap-4 mb-3 font-body text-xs text-muted-foreground">
                   {order.deliveryMethod && (
@@ -197,6 +226,51 @@ export default function AdminOrdersSection({
                 {extendSaving ? 'Сохраняем...' : 'Сохранить'}
               </Button>
               <Button variant="outline" onClick={() => setExtendOrderItem(null)} className="rounded-none font-body">Отмена</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* МОДАЛКА ОТКЛОНЕНИЯ ЗАЯВКИ */}
+      {rejectOrderItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-background border border-border w-full max-w-sm">
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <h3 className="font-display font-bold text-xl">Отклонить заявку</h3>
+              <button onClick={() => setRejectOrderItem(null)} className="text-muted-foreground hover:text-foreground"><Icon name="X" size={20} /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="font-body text-sm text-muted-foreground">{rejectOrderItem.name as string} — {rejectOrderItem.phone as string}</p>
+              <div>
+                <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">Причина отклонения</label>
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Например: нет в наличии нужного количества, клиент не подтвердил бронь..."
+                  rows={4}
+                  className="w-full rounded-none border border-input bg-background px-3 py-2 font-body text-sm resize-none"
+                />
+              </div>
+            </div>
+            <div className="p-6 border-t border-border flex gap-3">
+              <Button onClick={handleRejectSave} disabled={rejectSaving || !rejectReason.trim()} className="flex-1 bg-destructive hover:bg-destructive/90 text-white rounded-none font-body">
+                {rejectSaving ? 'Сохраняем...' : 'Отклонить заявку'}
+              </Button>
+              <Button variant="outline" onClick={() => setRejectOrderItem(null)} className="rounded-none font-body">Отмена</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ПОДТВЕРЖДЕНИЕ УДАЛЕНИЯ ЗАЯВКИ */}
+      {deleteOrderId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-background border border-border p-6 w-full max-w-sm">
+            <h3 className="font-display font-bold text-xl mb-2">Удалить заявку?</h3>
+            <p className="font-body text-sm text-muted-foreground mb-6">Заявка будет полностью удалена из базы данных без возможности восстановления. Если по ней списан инструмент — остаток вернётся на склад.</p>
+            <div className="flex gap-3">
+              <Button onClick={() => handleDeleteOrder(deleteOrderId)} className="flex-1 bg-destructive hover:bg-destructive/90 text-white rounded-none font-body">Удалить</Button>
+              <Button variant="outline" onClick={() => setDeleteOrderId(null)} className="flex-1 rounded-none font-body">Отмена</Button>
             </div>
           </div>
         </div>
