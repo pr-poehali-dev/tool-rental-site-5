@@ -350,9 +350,8 @@ export default function Index() {
                         )}
                         {tool.manualVideoUrl && (
                           <a href={tool.manualVideoUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
-                            className="font-body text-xs px-2 py-1 border border-border text-muted-foreground hover:border-foreground hover:text-foreground transition-colors flex items-center gap-1">
-                            <Icon name="Youtube" size={12} /> Видео
-                          </a>
+                            className="font-body text-xs px-2 py-1 border border-border text-muted-foreground hover:border-foreground hover:text-foreground transition-colors flex items-center gap-1">Видеоинструкция по применению
+</a>
                         )}
                       </div>
                     )}
