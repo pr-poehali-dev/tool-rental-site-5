@@ -243,6 +243,11 @@ def handler(event: dict, context) -> dict:
         body = json.loads(event.get('body') or '{}')
         name = body.get('name', '')
         phone = body.get('phone', '')
+        email = body.get('email', '')
+        at_pos = email.find('@')
+        if not email or at_pos <= 0 or at_pos >= len(email) - 1:
+            conn.close()
+            return {'statusCode': 400, 'headers': HEADERS, 'body': json.dumps({'error': 'Укажите корректный email'})}
         cur = conn.cursor()
         cur.execute(
             """INSERT INTO orders

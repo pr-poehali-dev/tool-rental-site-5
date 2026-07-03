@@ -120,9 +120,11 @@ export default function Index() {
   // Форма контактов
   const [orderName, setOrderName] = useState('');
   const [orderPhone, setOrderPhone] = useState('');
+  const [orderEmail, setOrderEmail] = useState('');
   const [orderMessage, setOrderMessage] = useState('');
   const [orderSending, setOrderSending] = useState(false);
   const [orderSent, setOrderSent] = useState(false);
+  const orderEmailValid = orderEmail.includes('@') && orderEmail.length > orderEmail.indexOf('@') + 1 && orderEmail.indexOf('@') > 0;
 
   useEffect(() => {
     getCatalog().then((data) => {
@@ -169,10 +171,10 @@ export default function Index() {
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
 
   const handleOrder = async () => {
-    if (!orderName || !orderPhone) return;
+    if (!orderName || !orderPhone || !orderEmailValid) return;
     setOrderSending(true);
     const cartData = cart.map((i) => ({ id: i.tool.id, name: i.tool.name, price: i.tool.price, days: i.days, qty: i.qty }));
-    await submitOrder({ name: orderName, phone: orderPhone, message: orderMessage, cart: cartData, deliveryMethod: 'pickup', paymentMethod: 'cash' });
+    await submitOrder({ name: orderName, phone: orderPhone, email: orderEmail, message: orderMessage, cart: cartData, deliveryMethod: 'pickup', paymentMethod: 'cash' });
     setOrderSending(false);
     setOrderSent(true);
     setCart([]);
@@ -657,14 +659,32 @@ export default function Index() {
             ) : (
               <div className="space-y-4">
                 <Input value={orderName} onChange={(e) => setOrderName(e.target.value)} placeholder="Ваше имя" className="rounded-none h-12 font-body" />
-                <Input value={orderPhone} onChange={(e) => setOrderPhone(e.target.value)} placeholder="Телефон" className="rounded-none h-12 font-body" />
+                <Input
+                  type="tel"
+                  value={orderPhone}
+                  onChange={(e) => setOrderPhone(e.target.value.replace(/[^\d+]/g, ''))}
+                  placeholder="Телефон"
+                  className="rounded-none h-12 font-body"
+                />
+                <div>
+                  <Input
+                    type="email"
+                    value={orderEmail}
+                    onChange={(e) => setOrderEmail(e.target.value.replace(/\s/g, ''))}
+                    placeholder="Email"
+                    className="rounded-none h-12 font-body"
+                  />
+                  {orderEmail.length > 0 && !orderEmailValid && (
+                    <p className="font-body text-xs text-destructive mt-1">Введите корректный email (должен содержать @)</p>
+                  )}
+                </div>
                 <textarea value={orderMessage} onChange={(e) => setOrderMessage(e.target.value)} placeholder="Какой инструмент нужен?" rows={4} className="w-full rounded-none border border-input bg-background px-3 py-2 font-body text-sm resize-none" />
                 {cart.length > 0 && (
                   <div className="bg-secondary border border-border p-3 text-sm font-body text-muted-foreground">
                     В корзине: {cart.map(i => `${i.tool.name} (${i.qty} шт × ${i.days} дн)`).join(', ')}
                   </div>
                 )}
-                <Button onClick={handleOrder} disabled={orderSending || !orderName || !orderPhone} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground rounded-none h-12 font-body">
+                <Button onClick={handleOrder} disabled={orderSending || !orderName || !orderPhone || !orderEmailValid} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground rounded-none h-12 font-body">
                   {orderSending ? 'Отправляем...' : 'Отправить заявку'}
                 </Button>
               </div>

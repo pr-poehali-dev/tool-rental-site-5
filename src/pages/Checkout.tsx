@@ -63,7 +63,8 @@ export default function Checkout() {
   }, [navigate]);
 
   const total = cart.reduce((sum, i) => sum + i.tool.price * i.days * i.qty, 0);
-  const canSubmit = name.trim() && phone.trim() && (deliveryMethod === 'pickup' || address.trim()) && date;
+  const emailValid = email.includes('@') && email.length > email.indexOf('@') + 1 && email.indexOf('@') > 0;
+  const canSubmit = name.trim() && phone.trim() && emailValid && (deliveryMethod === 'pickup' || address.trim()) && date;
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -144,8 +145,25 @@ export default function Checkout() {
               </h2>
               <div className="grid sm:grid-cols-2 gap-4">
                 <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ваше имя *" className="rounded-none h-12 font-body" />
-                <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Телефон *" className="rounded-none h-12 font-body" />
-                <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email (необязательно)" className="rounded-none h-12 font-body sm:col-span-2" />
+                <Input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/[^\d+]/g, ''))}
+                  placeholder="Телефон *"
+                  className="rounded-none h-12 font-body"
+                />
+                <div className="sm:col-span-2">
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value.replace(/\s/g, ''))}
+                    placeholder="Email *"
+                    className="rounded-none h-12 font-body"
+                  />
+                  {email.length > 0 && !emailValid && (
+                    <p className="font-body text-xs text-destructive mt-1">Введите корректный email (должен содержать @)</p>
+                  )}
+                </div>
               </div>
             </section>
 
