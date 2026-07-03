@@ -1,9 +1,17 @@
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
 
 const STATUS_LABELS: Record<string, string> = { new: 'Новая', processing: 'В работе', done: 'Выполнена', returned: 'Возвращена' };
 const STATUS_COLORS: Record<string, string> = { new: 'bg-blue-100 text-blue-700', processing: 'bg-amber-100 text-amber-700', done: 'bg-green-100 text-green-700', returned: 'bg-gray-200 text-gray-600' };
+
+interface ClientAddress {
+  id: number;
+  address: string;
+  label: string;
+  isDefault: boolean;
+}
 
 interface Client {
   id: number;
@@ -16,6 +24,7 @@ interface Client {
   firstOrder: string | null;
   lastOrder: string | null;
   orderIds: number[];
+  addresses: ClientAddress[];
 }
 
 interface ClientOrder {
@@ -41,12 +50,18 @@ interface AdminClientsSectionProps {
   setEditClient: (c: Client | null) => void;
   saving: boolean;
   handleSaveClient: () => void;
+  handleAddAddress: (phone: string, address: string, label: string) => Promise<void>;
+  handleDeleteAddress: (id: number) => Promise<void>;
 }
 
 export default function AdminClientsSection({
   clients, clientSearch, setClientSearch, selectedClient, handleSelectClient,
   clientOrders, clientOrdersLoading, editClient, setEditClient, saving, handleSaveClient,
+  handleAddAddress, handleDeleteAddress,
 }: AdminClientsSectionProps) {
+  const [newAddress, setNewAddress] = useState('');
+  const [newAddressLabel, setNewAddressLabel] = useState('');
+  const [addingAddress, setAddingAddress] = useState(false);
   const filteredClients = clients.filter((c) => {
     if (!clientSearch.trim()) return true;
     const q = clientSearch.toLowerCase();
@@ -154,6 +169,56 @@ export default function AdminClientsSection({
                   <p className="font-body text-sm">{selectedClient.notes}</p>
                 </div>
               )}
+
+              {/* Адреса клиента */}
+              <div className="px-5 py-4 border-b border-border">
+                <div className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-3">Адреса доставки</div>
+                {selectedClient.addresses.length === 0 && (
+                  <p className="font-body text-sm text-muted-foreground mb-3">Адресов пока нет</p>
+                )}
+                {selectedClient.addresses.length > 0 && (
+                  <div className="space-y-2 mb-3">
+                    {selectedClient.addresses.map((addr) => (
+                      <div key={addr.id} className="flex items-start justify-between gap-2 bg-secondary px-3 py-2">
+                        <div className="min-w-0">
+                          {addr.label && <div className="font-body text-xs text-muted-foreground">{addr.label}</div>}
+                          <div className="font-body text-sm truncate">{addr.address}</div>
+                        </div>
+                        <button onClick={() => handleDeleteAddress(addr.id)} className="text-muted-foreground hover:text-destructive shrink-0">
+                          <Icon name="Trash2" size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Input
+                    value={newAddressLabel}
+                    onChange={(e) => setNewAddressLabel(e.target.value)}
+                    placeholder="Метка (дом/офис)"
+                    className="rounded-none font-body text-sm h-9 w-32 shrink-0"
+                  />
+                  <Input
+                    value={newAddress}
+                    onChange={(e) => setNewAddress(e.target.value)}
+                    placeholder="Новый адрес..."
+                    className="rounded-none font-body text-sm h-9"
+                  />
+                  <Button
+                    disabled={!newAddress.trim() || addingAddress}
+                    onClick={async () => {
+                      setAddingAddress(true);
+                      await handleAddAddress(selectedClient.phone, newAddress.trim(), newAddressLabel.trim());
+                      setNewAddress('');
+                      setNewAddressLabel('');
+                      setAddingAddress(false);
+                    }}
+                    className="bg-accent hover:bg-accent/90 text-accent-foreground rounded-none font-body text-sm h-9 px-3 shrink-0"
+                  >
+                    <Icon name="Plus" size={15} />
+                  </Button>
+                </div>
+              </div>
 
               {/* История заказов */}
               <div className="p-5">

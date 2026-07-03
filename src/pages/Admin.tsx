@@ -5,6 +5,7 @@ import {
   adminLogin, checkAdminToken, adminGet, adminCreate, adminUpdate, adminDelete,
   getOrders, updateOrderStatus, extendOrder as extendOrderApi, getClients, getClientOrders, updateClient,
   rejectOrder as rejectOrderApi, deleteOrder as deleteOrderApi,
+  addClientAddress, deleteClientAddress,
 } from '@/api';
 import AdminLoginScreen from '@/components/admin/AdminLoginScreen';
 import AdminCatalogSection from '@/components/admin/AdminCatalogSection';
@@ -23,6 +24,13 @@ function emptyMachine() {
   return { name: '', subtitle: '', image: '', specs: [] as {label:string;value:string}[], attachments: [] as string[], price: 0, priceUnit: 'час', available: true };
 }
 
+interface ClientAddress {
+  id: number;
+  address: string;
+  label: string;
+  isDefault: boolean;
+}
+
 interface Client {
   id: number;
   phone: string;
@@ -34,6 +42,7 @@ interface Client {
   firstOrder: string | null;
   lastOrder: string | null;
   orderIds: number[];
+  addresses: ClientAddress[];
 }
 
 interface ClientOrder {
@@ -229,6 +238,26 @@ export default function Admin() {
     }
   };
 
+  const refreshClientsAndSelected = async (phone: string) => {
+    const updated = await getClients(token);
+    const list = Array.isArray(updated) ? updated : [];
+    setData((prev) => ({ ...prev, clients: list }));
+    const fresh = (list as Client[]).find((c) => c.phone === phone);
+    if (fresh) setSelectedClient(fresh);
+  };
+
+  const handleAddAddress = async (phone: string, address: string, label: string) => {
+    if (!address.trim()) return;
+    await addClientAddress(token, phone, address, label);
+    await refreshClientsAndSelected(phone);
+  };
+
+  const handleDeleteAddress = async (id: number) => {
+    if (!selectedClient) return;
+    await deleteClientAddress(token, id);
+    await refreshClientsAndSelected(selectedClient.phone);
+  };
+
   const setField = (key: string, value: unknown) => setEditItem((prev) => prev ? { ...prev, [key]: value } : prev);
 
   if (!authChecked) {
@@ -360,6 +389,8 @@ export default function Admin() {
                 setEditClient={setEditClient}
                 saving={saving}
                 handleSaveClient={handleSaveClient}
+                handleAddAddress={handleAddAddress}
+                handleDeleteAddress={handleDeleteAddress}
               />
             )}
           </>

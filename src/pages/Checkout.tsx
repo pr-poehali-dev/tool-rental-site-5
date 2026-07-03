@@ -45,6 +45,7 @@ export default function Checkout() {
 
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [orderId, setOrderId] = useState<number | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('cart');
@@ -68,7 +69,7 @@ export default function Checkout() {
     if (!canSubmit) return;
     setSending(true);
     const cartData = cart.map((i) => ({ id: i.tool.id, name: i.tool.name, price: i.tool.price, days: i.days, qty: i.qty }));
-    await submitOrder({
+    const res = await submitOrder({
       name,
       phone,
       email,
@@ -80,6 +81,7 @@ export default function Checkout() {
       receiveTime: timeSlot,
       paymentMethod,
     });
+    if (res && res.id) setOrderId(res.id);
     setSending(false);
     setSent(true);
     localStorage.removeItem('cart');
@@ -94,9 +96,16 @@ export default function Checkout() {
           </div>
           <h1 className="font-display font-bold text-2xl mb-2">Заявка оформлена!</h1>
           <p className="font-body text-muted-foreground mb-6">Мы свяжемся с вами в ближайшее время для подтверждения.</p>
-          <Button onClick={() => navigate('/')} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground rounded-none h-12 font-body">
-            На главную
-          </Button>
+          <div className="space-y-2">
+            {orderId && (
+              <Button onClick={() => navigate(`/order/${orderId}`)} variant="outline" className="w-full rounded-none h-12 font-body">
+                Посмотреть статус заявки
+              </Button>
+            )}
+            <Button onClick={() => navigate('/')} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground rounded-none h-12 font-body">
+              На главную
+            </Button>
+          </div>
         </div>
       </div>
     );

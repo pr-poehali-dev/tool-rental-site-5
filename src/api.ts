@@ -118,6 +118,12 @@ export async function deleteOrder(token: string, id: number) {
   return res.json();
 }
 
+export async function getPublicOrder(id: string) {
+  const res = await fetch(`${ORDERS_URL}?public=1&id=${id}`);
+  if (!res.ok) return null;
+  return res.json();
+}
+
 export async function getClients(token: string) {
   const res = await fetch(CLIENTS_URL, { headers: { 'X-Admin-Token': token } });
   return res.json();
@@ -135,6 +141,23 @@ export async function updateClient(token: string, data: { phone: string; fullNam
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
     body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function addClientAddress(token: string, phone: string, address: string, label: string) {
+  const res = await fetch(`${CLIENTS_URL}?action=add_address`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+    body: JSON.stringify({ phone, address, label }),
+  });
+  return res.json();
+}
+
+export async function deleteClientAddress(token: string, id: number) {
+  const res = await fetch(`${CLIENTS_URL}?action=address&id=${id}`, {
+    method: 'DELETE',
+    headers: { 'X-Admin-Token': token },
   });
   return res.json();
 }

@@ -4,7 +4,7 @@ import psycopg2
 
 HEADERS = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Token',
     'Content-Type': 'application/json',
 }
@@ -20,7 +20,8 @@ def check_auth(conn, token):
     return row is not None
 
 def handler(event: dict, context) -> dict:
-    """База клиентов: GET — список с агрегацией из заказов, PUT — обновить ФИО/заметки."""
+    """База клиентов: GET — список с агрегацией из заказов и адресами, PUT — обновить ФИО/заметки,
+    POST action=add_address — добавить адрес клиенту, DELETE action=address — удалить адрес."""
     if event.get('httpMethod') == 'OPTIONS':
         return {'statusCode': 200, 'headers': HEADERS, 'body': ''}
 
@@ -32,6 +33,38 @@ def handler(event: dict, context) -> dict:
         return {'statusCode': 401, 'headers': HEADERS, 'body': json.dumps({'error': 'Не авторизован'})}
 
     method = event.get('httpMethod', 'GET')
+    params = event.get('queryStringParameters') or {}
+
+    if method == 'POST' and params.get('action') == 'add_address':
+        body = json.loads(event.get('body') or '{}')
+        phone = body.get('phone', '')
+        address = body.get('address', '')
+        label = body.get('label', '')
+        if not phone or not address:
+            conn.close()
+            return {'statusCode': 400, 'headers': HEADERS, 'body': json.dumps({'error': 'phone и address обязательны'})}
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO client_addresses (client_phone, address, label) VALUES (%s, %s, %s) RETURNING id",
+            (phone, address, label)
+        )
+        new_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {'statusCode': 201, 'headers': HEADERS, 'body': json.dumps({'id': new_id, 'ok': True})}
+
+    if method == 'DELETE' and params.get('action') == 'address':
+        address_id = params.get('id')
+        if not address_id:
+            conn.close()
+            return {'statusCode': 400, 'headers': HEADERS, 'body': json.dumps({'error': 'id required'})}
+        cur = conn.cursor()
+        cur.execute("DELETE FROM client_addresses WHERE id = %s", (address_id,))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps({'ok': True})}
 
     if method == 'GET':
         cur = conn.cursor()
@@ -61,6 +94,15 @@ def handler(event: dict, context) -> dict:
             ORDER BY last_order DESC NULLS LAST, c.created_at DESC
         """)
         rows = cur.fetchall()
+
+        # Адреса всех клиентов одним запросом
+        cur.execute("SELECT id, client_phone, address, label, is_default FROM client_addresses ORDER BY is_default DESC, created_at")
+        addresses_by_phone: dict = {}
+        for a in cur.fetchall():
+            addresses_by_phone.setdefault(a[1], []).append({
+                'id': a[0], 'address': a[2], 'label': a[3], 'isDefault': a[4],
+            })
+
         result = []
         for r in rows:
             result.append({
@@ -74,10 +116,10 @@ def handler(event: dict, context) -> dict:
                 'firstOrder': r[7].isoformat() if r[7] else None,
                 'lastOrder': r[8].isoformat() if r[8] else None,
                 'orderIds': r[9] or [],
+                'addresses': addresses_by_phone.get(r[1], []),
             })
 
         # Также достаём детали заказов для конкретного клиента если запрошен phone
-        params = event.get('queryStringParameters') or {}
         phone = params.get('phone', '')
         if phone:
             cur.execute("""
