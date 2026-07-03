@@ -399,7 +399,7 @@ export default function Index() {
           <div className="flex flex-wrap items-end justify-between gap-6 mb-10">
             <div>
               <div className="font-body text-sm uppercase tracking-widest text-accent mb-3">Магазин</div>
-              <h2 className="font-display font-bold text-5xl md:text-6xl tracking-tight">Комплектующие</h2>
+              <h2 className="font-display font-bold text-5xl md:text-6xl tracking-tight">Комплектующие и расходники</h2>
 
             </div>
             <div className="relative w-full max-w-xs">
