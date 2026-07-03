@@ -15,6 +15,7 @@ interface ManualUploaderProps {
 export default function ManualUploader({ pdfUrl, videoUrl, onChangePdf, onChangeVideo, token }: ManualUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [urlInput, setUrlInput] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const MAX_PDF_MB = 3;
@@ -24,7 +25,7 @@ export default function ManualUploader({ pdfUrl, videoUrl, onChangePdf, onChange
     if (!file) return;
     setError('');
     if (file.size > MAX_PDF_MB * 1024 * 1024) {
-      setError(`Файл слишком большой (макс. ${MAX_PDF_MB} МБ). Сожмите PDF или уменьшите разрешение картинок внутри него`);
+      setError(`Файл слишком большой (макс. ${MAX_PDF_MB} МБ). Сожмите PDF или вставьте ссылку на файл ниже`);
       if (fileRef.current) fileRef.current.value = '';
       return;
     }
@@ -37,6 +38,18 @@ export default function ManualUploader({ pdfUrl, videoUrl, onChangePdf, onChange
     }
     setUploading(false);
     if (fileRef.current) fileRef.current.value = '';
+  };
+
+  const handleUrlAdd = () => {
+    const url = urlInput.trim();
+    if (!url) return;
+    setError('');
+    if (!/^https?:\/\//i.test(url)) {
+      setError('Ссылка должна начинаться с http:// или https://');
+      return;
+    }
+    onChangePdf(url);
+    setUrlInput('');
   };
 
   return (
@@ -77,6 +90,27 @@ export default function ManualUploader({ pdfUrl, videoUrl, onChangePdf, onChange
         )}
         {error && <p className="font-body text-xs text-destructive mt-1">{error}</p>}
         {!pdfUrl && !error && <p className="font-body text-xs text-muted-foreground mt-1">Максимум {MAX_PDF_MB} МБ</p>}
+
+        {!pdfUrl && (
+          <div className="flex gap-2 mt-2">
+            <Input
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleUrlAdd()}
+              placeholder="Или вставить ссылку на PDF (Я.Диск, Google Drive и т.д.)"
+              className="rounded-none font-body text-xs h-10 flex-1"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleUrlAdd}
+              disabled={!urlInput.trim()}
+              className="rounded-none font-body text-sm gap-1.5 shrink-0 h-10 px-3"
+            >
+              <Icon name="Link" size={14} /> Добавить
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Видео */}
