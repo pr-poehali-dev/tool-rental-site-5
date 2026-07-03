@@ -59,7 +59,7 @@ def build_message(order_id, name, status, cart, reject_reason=''):
     """Формирует текст уведомления с составом заказа и ссылкой на статус."""
     site_url = os.environ.get('SITE_URL', '').rstrip('/')
     link = f"{site_url}/order/{order_id}" if site_url else ''
-    status_label = STATUS_LABELS.get(status, status)
+    status_label = 'Аренда завершена' if status == 'returned' else STATUS_LABELS.get(status, status)
 
     lines = [f"Строй_Rent: заявка №{order_id} — статус изменён на «{status_label}»."]
 
@@ -79,7 +79,11 @@ def build_message(order_id, name, status, cart, reject_reason=''):
         lines.append(f"Причина отклонения: {reject_reason}")
 
     lines.append('Спасибо, что пользуетесь нашим сервисом!')
-    if link:
+
+    if status == 'returned':
+        lines.append('Ждем Вас снова.')
+        lines.append('"Бери на время — строй на века" - Строй_Rent')
+    elif link:
         lines.append(f"Статус заказа: {link}")
 
     return '\n'.join(lines)
