@@ -21,6 +21,8 @@ interface Tool {
   toolType: string;
   material: string[];
   deposit: number;
+  manualPdfUrl: string;
+  manualVideoUrl: string;
 }
 
 interface Part {
@@ -336,6 +338,22 @@ export default function Index() {
                     {tool.material.length > 0 && (
                       <div className="flex flex-wrap gap-1 mb-3">
                         {tool.material.map((m) => <span key={m} className="font-body text-xs px-2 py-0.5 bg-secondary border border-border text-muted-foreground">{m}</span>)}
+                      </div>
+                    )}
+                    {(tool.manualPdfUrl || tool.manualVideoUrl) && (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {tool.manualPdfUrl && (
+                          <a href={tool.manualPdfUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
+                            className="font-body text-xs px-2 py-1 border border-border text-muted-foreground hover:border-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                            <Icon name="FileText" size={12} /> Инструкция PDF
+                          </a>
+                        )}
+                        {tool.manualVideoUrl && (
+                          <a href={tool.manualVideoUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
+                            className="font-body text-xs px-2 py-1 border border-border text-muted-foreground hover:border-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                            <Icon name="Youtube" size={12} /> Видео
+                          </a>
+                        )}
                       </div>
                     )}
                     <div className="mt-auto flex items-end justify-between">

@@ -192,3 +192,23 @@ export async function uploadImageUrl(token: string, url: string): Promise<string
   if (data.url) return data.url;
   throw new Error(data.error || 'Ошибка загрузки');
 }
+
+export async function uploadPdf(token: string, file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const res = await fetch(`${ADMIN_TOOLS_URL}?action=upload_pdf`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+          body: JSON.stringify({ data: reader.result as string, filename: file.name }),
+        });
+        const data = await res.json();
+        if (data.url) resolve(data.url);
+        else reject(new Error(data.error || 'Ошибка загрузки'));
+      } catch (e) { reject(e); }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}

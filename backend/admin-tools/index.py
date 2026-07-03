@@ -74,8 +74,31 @@ def upload_image(body: dict) -> dict:
     cdn_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
     return {'url': cdn_url}
 
+def upload_pdf(body: dict) -> dict:
+    """Загружает PDF-инструкцию в S3 из base64, возвращает {url}."""
+    data = body.get('data', '')
+    filename = body.get('filename', 'manual.pdf')
+    if not filename.lower().endswith('.pdf'):
+        return {'error': 'Разрешены только PDF-файлы'}
+    if ',' in data:
+        data = data.split(',', 1)[1]
+    try:
+        pdf_bytes = base64.b64decode(data)
+    except Exception:
+        return {'error': 'Не удалось прочитать файл'}
+
+    if not pdf_bytes:
+        return {'error': 'Нет данных'}
+    if len(pdf_bytes) > 20 * 1024 * 1024:
+        return {'error': 'Файл слишком большой (макс. 20 МБ)'}
+
+    key = f"tool-manuals/{uuid.uuid4().hex}.pdf"
+    get_s3().put_object(Bucket='files', Key=key, Body=pdf_bytes, ContentType='application/pdf')
+    cdn_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+    return {'url': cdn_url}
+
 def handler(event: dict, context) -> dict:
-    """CRUD + загрузка фото для инструментов, комплектующих и спецтехники. Требует X-Admin-Token."""
+    """CRUD + загрузка фото и PDF-инструкций для инструментов, комплектующих и спецтехники. Требует X-Admin-Token."""
     if event.get('httpMethod') == 'OPTIONS':
         return {'statusCode': 200, 'headers': HEADERS, 'body': ''}
 
@@ -95,6 +118,15 @@ def handler(event: dict, context) -> dict:
         conn.close()
         body = json.loads(event.get('body') or '{}')
         result = upload_image(body)
+        if 'error' in result:
+            return {'statusCode': 400, 'headers': HEADERS, 'body': json.dumps(result)}
+        return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps(result)}
+
+    # Загрузка PDF-инструкции — отдельный маршрут
+    if action == 'upload_pdf' and method == 'POST':
+        conn.close()
+        body = json.loads(event.get('body') or '{}')
+        result = upload_pdf(body)
         if 'error' in result:
             return {'statusCode': 400, 'headers': HEADERS, 'body': json.dumps(result)}
         return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps(result)}
@@ -126,7 +158,7 @@ def handler(event: dict, context) -> dict:
                                 'stock': r[6], 'specs': r[7], 'toolType': r[8],
                                 'material': r[9] or [], 'active': r[10]})
         else:
-            cur.execute("SELECT id, name, category, price, image, images, stock, total_stock, specs, tool_type, material, active, deposit FROM tools ORDER BY category, name")
+            cur.execute("SELECT id, name, category, price, image, images, stock, total_stock, specs, tool_type, material, active, deposit, manual_pdf_url, manual_video_url FROM tools ORDER BY category, name")
             rows = cur.fetchall()
             result = []
             for r in rows:
@@ -135,7 +167,7 @@ def handler(event: dict, context) -> dict:
                                 'image': imgs[0] if imgs else '', 'images': imgs,
                                 'stock': r[6], 'totalStock': r[7], 'specs': r[8],
                                 'toolType': r[9], 'material': r[10] or [], 'active': r[11],
-                                'deposit': r[12]})
+                                'deposit': r[12], 'manualPdfUrl': r[13], 'manualVideoUrl': r[14]})
 
         cur.close()
         conn.close()
@@ -162,9 +194,10 @@ def handler(event: dict, context) -> dict:
             )
         else:
             cur.execute(
-                "INSERT INTO tools (name, category, price, image, images, stock, total_stock, specs, tool_type, material, deposit) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+                "INSERT INTO tools (name, category, price, image, images, stock, total_stock, specs, tool_type, material, deposit, manual_pdf_url, manual_video_url) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
                 (body.get('name',''), body.get('category',''), body.get('price',0), main_image, images,
-                 body.get('stock',0), body.get('totalStock',0), body.get('specs',''), body.get('toolType',''), body.get('material',[]), body.get('deposit',0))
+                 body.get('stock',0), body.get('totalStock',0), body.get('specs',''), body.get('toolType',''), body.get('material',[]), body.get('deposit',0),
+                 body.get('manualPdfUrl',''), body.get('manualVideoUrl',''))
             )
         new_id = cur.fetchone()[0]
         conn.commit()
@@ -194,10 +227,11 @@ def handler(event: dict, context) -> dict:
             )
         else:
             cur.execute(
-                "UPDATE tools SET name=%s, category=%s, price=%s, image=%s, images=%s, stock=%s, total_stock=%s, specs=%s, tool_type=%s, material=%s, active=%s, deposit=%s, updated_at=NOW() WHERE id=%s",
+                "UPDATE tools SET name=%s, category=%s, price=%s, image=%s, images=%s, stock=%s, total_stock=%s, specs=%s, tool_type=%s, material=%s, active=%s, deposit=%s, manual_pdf_url=%s, manual_video_url=%s, updated_at=NOW() WHERE id=%s",
                 (body.get('name'), body.get('category'), body.get('price'), main_image, images,
                  body.get('stock'), body.get('totalStock'), body.get('specs'), body.get('toolType'),
-                 body.get('material',[]), body.get('active', True), body.get('deposit', 0), item_id)
+                 body.get('material',[]), body.get('active', True), body.get('deposit', 0),
+                 body.get('manualPdfUrl', ''), body.get('manualVideoUrl', ''), item_id)
             )
         conn.commit()
         cur.close()

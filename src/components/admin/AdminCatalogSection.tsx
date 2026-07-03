@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
 import ImageUploader from '@/components/ImageUploader';
+import ManualUploader from '@/components/ManualUploader';
 
 type Tab = 'tools' | 'parts' | 'machines' | 'orders' | 'clients';
 
@@ -178,6 +179,15 @@ export default function AdminCatalogSection({
                     onChange={(imgs) => { setField('images', imgs); setField('image', imgs[0] || ''); }}
                     token={token}
                   />
+                  {tab === 'tools' && (
+                    <ManualUploader
+                      pdfUrl={editItem.manualPdfUrl as string || ''}
+                      videoUrl={editItem.manualVideoUrl as string || ''}
+                      onChangePdf={(url) => setField('manualPdfUrl', url)}
+                      onChangeVideo={(url) => setField('manualVideoUrl', url)}
+                      token={token}
+                    />
+                  )}
                   <div className="flex items-center gap-3">
                     <input type="checkbox" id="active" checked={editItem.active as boolean ?? true} onChange={(e) => setField('active', e.target.checked)} className="w-4 h-4" />
                     <label htmlFor="active" className="font-body text-sm">Показывать в каталоге</label>

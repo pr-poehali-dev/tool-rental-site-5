@@ -15,7 +15,7 @@ import AdminClientsSection from '@/components/admin/AdminClientsSection';
 type Tab = 'tools' | 'parts' | 'machines' | 'orders' | 'clients';
 
 function emptyTool() {
-  return { name: '', category: 'Электроинструмент', price: 0, image: '', stock: 0, totalStock: 0, specs: '', toolType: '', material: [] as string[], active: true, deposit: 0 };
+  return { name: '', category: 'Электроинструмент', price: 0, image: '', stock: 0, totalStock: 0, specs: '', toolType: '', material: [] as string[], active: true, deposit: 0, manualPdfUrl: '', manualVideoUrl: '' };
 }
 function emptyPart() {
   return { name: '', category: 'Оснастка', price: 0, image: '', stock: 0, specs: '', toolType: '', material: [] as string[], active: true };
