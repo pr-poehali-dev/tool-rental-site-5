@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { submitOrder } from '@/api';
 
 interface CartItem {
-  tool: { id: number; name: string; price: number; image: string; stock: number };
+  tool: { id: number; name: string; price: number; image: string; stock: number; deposit?: number };
   days: number;
   qty: number;
 }
@@ -62,14 +62,16 @@ export default function Checkout() {
     navigate('/');
   }, [navigate]);
 
-  const total = cart.reduce((sum, i) => sum + i.tool.price * i.days * i.qty, 0);
-  const emailValid = email.includes('@') && email.length > email.indexOf('@') + 1 && email.indexOf('@') > 0;
+  const rentTotal = cart.reduce((sum, i) => sum + i.tool.price * i.days * i.qty, 0);
+  const depositTotal = cart.reduce((sum, i) => sum + (i.tool.deposit || 0) * i.qty, 0);
+  const total = rentTotal + depositTotal;
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const canSubmit = name.trim() && phone.trim() && emailValid && (deliveryMethod === 'pickup' || address.trim()) && date;
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setSending(true);
-    const cartData = cart.map((i) => ({ id: i.tool.id, name: i.tool.name, price: i.tool.price, days: i.days, qty: i.qty }));
+    const cartData = cart.map((i) => ({ id: i.tool.id, name: i.tool.name, price: i.tool.price, days: i.days, qty: i.qty, deposit: i.tool.deposit || 0 }));
     const res = await submitOrder({
       name,
       phone,
@@ -279,6 +281,9 @@ export default function Checkout() {
                       <div className="font-body text-sm font-medium leading-tight truncate">{item.tool.name}</div>
                       <div className="font-body text-xs text-muted-foreground mt-0.5">{item.qty} шт × {item.days} дн</div>
                       <div className="font-display font-semibold text-sm mt-0.5">{item.tool.price * item.days * item.qty} ₽</div>
+                      {!!item.tool.deposit && (
+                        <div className="font-body text-xs text-muted-foreground mt-0.5">+ залог {item.tool.deposit * item.qty} ₽</div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -286,14 +291,20 @@ export default function Checkout() {
               <div className="border-t border-border pt-4 mb-5">
                 <div className="flex items-center justify-between mb-1">
                   <span className="font-body text-sm text-muted-foreground">Товары</span>
-                  <span className="font-body text-sm">{total} ₽</span>
+                  <span className="font-body text-sm">{rentTotal} ₽</span>
                 </div>
+                {depositTotal > 0 && (
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-body text-sm text-muted-foreground">Залог (возвращается)</span>
+                    <span className="font-body text-sm">{depositTotal} ₽</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between mb-3">
                   <span className="font-body text-sm text-muted-foreground">Доставка</span>
                   <span className="font-body text-sm">{deliveryMethod === 'pickup' ? 'Бесплатно' : 'По согласованию'}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="font-body font-medium">Итого</span>
+                  <span className="font-body font-medium">Итого к оплате</span>
                   <span className="font-display font-bold text-2xl">{total} ₽</span>
                 </div>
               </div>
@@ -307,7 +318,7 @@ export default function Checkout() {
               </Button>
               {!canSubmit && (
                 <p className="font-body text-xs text-muted-foreground mt-3 text-center">
-                  Заполните имя, телефон{deliveryMethod === 'delivery' ? ', адрес' : ''} и дату получения
+                  Заполните имя, телефон, email{deliveryMethod === 'delivery' ? ', адрес' : ''} и дату получения
                 </p>
               )}
             </div>

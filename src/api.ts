@@ -83,11 +83,11 @@ export async function getOrders(token: string, archived = false) {
   return res.json();
 }
 
-export async function updateOrderStatus(token: string, id: number, status: string) {
+export async function updateOrderStatus(token: string, id: number, status: string, comment?: string) {
   const res = await fetch(ORDERS_URL, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
-    body: JSON.stringify({ id, status }),
+    body: JSON.stringify({ id, status, comment: comment || '' }),
   });
   return res.json();
 }

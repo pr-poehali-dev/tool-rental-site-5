@@ -9,6 +9,7 @@ interface OrderCartItem {
   qty: number;
   days: number;
   price: number;
+  deposit?: number;
 }
 
 interface PublicOrder {
@@ -25,6 +26,7 @@ interface PublicOrder {
   paymentMethod: string;
   rejectReason: string;
   extensions: { days: number; amount: number }[];
+  adminComment: string;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -73,7 +75,9 @@ export default function OrderStatus() {
     }).catch(() => { setNotFound(true); setLoading(false); });
   }, [id]);
 
-  const total = order?.cart?.reduce((sum, i) => sum + i.qty * i.days * i.price, 0) || 0;
+  const rentTotal = order?.cart?.reduce((sum, i) => sum + i.qty * i.days * i.price, 0) || 0;
+  const depositTotal = order?.cart?.reduce((sum, i) => sum + (i.deposit || 0) * i.qty, 0) || 0;
+  const total = rentTotal + depositTotal;
 
   if (loading) {
     return (
@@ -134,6 +138,16 @@ export default function OrderStatus() {
             </div>
           )}
 
+          {order.adminComment && (
+            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 px-4 py-3 mb-6">
+              <Icon name="MessageCircle" size={16} className="text-amber-600 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-body text-sm font-medium text-amber-700">Комментарий от менеджера</p>
+                <p className="font-body text-sm text-amber-700 mt-0.5">{order.adminComment}</p>
+              </div>
+            </div>
+          )}
+
           <div className="grid sm:grid-cols-2 gap-4 mb-6 font-body text-sm">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Icon name={order.deliveryMethod === 'delivery' ? 'Truck' : 'Store'} size={15} />
@@ -168,13 +182,26 @@ export default function OrderStatus() {
                     <span>{item.name}</span>
                     <span className="text-muted-foreground">
                       {item.qty} шт × {item.days} дн × {item.price} ₽ = <strong className="text-foreground">{item.qty * item.days * item.price} ₽</strong>
+                      {!!item.deposit && <span className="block text-xs text-right">+ залог {item.deposit * item.qty} ₽</span>}
                     </span>
                   </div>
                 ))}
               </div>
-              <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
-                <span className="font-body font-medium">Итого</span>
-                <span className="font-display font-bold text-2xl">{total.toLocaleString('ru')} ₽</span>
+              <div className="mt-4 pt-4 border-t border-border space-y-1">
+                <div className="flex items-center justify-between font-body text-sm text-muted-foreground">
+                  <span>Аренда</span>
+                  <span>{rentTotal.toLocaleString('ru')} ₽</span>
+                </div>
+                {depositTotal > 0 && (
+                  <div className="flex items-center justify-between font-body text-sm text-muted-foreground">
+                    <span>Залог (возвращается)</span>
+                    <span>{depositTotal.toLocaleString('ru')} ₽</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between pt-1">
+                  <span className="font-body font-medium">Итого к оплате</span>
+                  <span className="font-display font-bold text-2xl">{total.toLocaleString('ru')} ₽</span>
+                </div>
               </div>
             </div>
           )}

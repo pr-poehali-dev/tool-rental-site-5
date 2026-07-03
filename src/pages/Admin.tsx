@@ -82,6 +82,11 @@ export default function Admin() {
   const [rejectSaving, setRejectSaving] = useState(false);
   const [deleteOrderId, setDeleteOrderId] = useState<number | null>(null);
 
+  // Заявки — комментарий при переводе "В работе"
+  const [processingOrderItem, setProcessingOrderItem] = useState<Record<string, unknown> | null>(null);
+  const [processingComment, setProcessingComment] = useState('');
+  const [processingSaving, setProcessingSaving] = useState(false);
+
   // Каталог — редактирование
   const [editItem, setEditItem] = useState<Record<string, unknown> | null>(null);
   const [isNew, setIsNew] = useState(false);
@@ -173,6 +178,21 @@ export default function Admin() {
 
   const handleOrderStatus = async (id: number, status: string) => {
     await updateOrderStatus(token, id, status);
+    const updated = await getOrders(token, showArchived);
+    setData((prev) => ({ ...prev, orders: Array.isArray(updated) ? updated : [] }));
+  };
+
+  const openProcessing = (order: Record<string, unknown>) => {
+    setProcessingOrderItem(order);
+    setProcessingComment('');
+  };
+
+  const handleProcessingSave = async () => {
+    if (!processingOrderItem) return;
+    setProcessingSaving(true);
+    await updateOrderStatus(token, processingOrderItem.id as number, 'processing', processingComment.trim());
+    setProcessingSaving(false);
+    setProcessingOrderItem(null);
     const updated = await getOrders(token, showArchived);
     setData((prev) => ({ ...prev, orders: Array.isArray(updated) ? updated : [] }));
   };
@@ -373,6 +393,13 @@ export default function Admin() {
                 deleteOrderId={deleteOrderId}
                 setDeleteOrderId={setDeleteOrderId}
                 handleDeleteOrder={handleDeleteOrder}
+                openProcessing={openProcessing}
+                processingOrderItem={processingOrderItem}
+                setProcessingOrderItem={setProcessingOrderItem}
+                processingComment={processingComment}
+                setProcessingComment={setProcessingComment}
+                processingSaving={processingSaving}
+                handleProcessingSave={handleProcessingSave}
               />
             )}
 

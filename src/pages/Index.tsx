@@ -124,7 +124,7 @@ export default function Index() {
   const [orderMessage, setOrderMessage] = useState('');
   const [orderSending, setOrderSending] = useState(false);
   const [orderSent, setOrderSent] = useState(false);
-  const orderEmailValid = orderEmail.includes('@') && orderEmail.length > orderEmail.indexOf('@') + 1 && orderEmail.indexOf('@') > 0;
+  const orderEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(orderEmail);
 
   useEffect(() => {
     getCatalog().then((data) => {
@@ -154,7 +154,9 @@ export default function Index() {
 
   const activeFiltersCount = (activeType !== 'Все типы' ? 1 : 0) + (activeMaterial !== 'Все материалы' ? 1 : 0);
   const cartCount = cart.reduce((sum, i) => sum + i.qty, 0);
-  const total = cart.reduce((sum, i) => sum + i.tool.price * i.days * i.qty, 0);
+  const rentTotal = cart.reduce((sum, i) => sum + i.tool.price * i.days * i.qty, 0);
+  const depositTotal = cart.reduce((sum, i) => sum + (i.tool.deposit || 0) * i.qty, 0);
+  const total = rentTotal + depositTotal;
 
   const addToCart = (tool: Tool) => {
     setCart((prev) => (prev.some((i) => i.tool.id === tool.id) ? prev : [...prev, { tool, days: 1, qty: 1 }]));
@@ -173,7 +175,7 @@ export default function Index() {
   const handleOrder = async () => {
     if (!orderName || !orderPhone || !orderEmailValid) return;
     setOrderSending(true);
-    const cartData = cart.map((i) => ({ id: i.tool.id, name: i.tool.name, price: i.tool.price, days: i.days, qty: i.qty }));
+    const cartData = cart.map((i) => ({ id: i.tool.id, name: i.tool.name, price: i.tool.price, days: i.days, qty: i.qty, deposit: i.tool.deposit || 0 }));
     await submitOrder({ name: orderName, phone: orderPhone, email: orderEmail, message: orderMessage, cart: cartData, deliveryMethod: 'pickup', paymentMethod: 'cash' });
     setOrderSending(false);
     setOrderSent(true);
@@ -765,13 +767,26 @@ export default function Index() {
                         </div>
                         <span className="font-display font-semibold text-lg">{item.tool.price * item.days * item.qty} ₽</span>
                       </div>
+                      {!!item.tool.deposit && (
+                        <div className="font-body text-xs text-muted-foreground mt-1 text-right">+ залог {item.tool.deposit * item.qty} ₽</div>
+                      )}
                     </div>
                   );
                 })}
               </div>
               <div className="p-6 border-t border-border bg-secondary">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="font-body text-muted-foreground">Итого</span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-body text-sm text-muted-foreground">Аренда</span>
+                  <span className="font-body text-sm">{rentTotal} ₽</span>
+                </div>
+                {depositTotal > 0 && (
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-body text-sm text-muted-foreground">Залог (возвращается)</span>
+                    <span className="font-body text-sm">{depositTotal} ₽</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between mb-4 mt-2 pt-2 border-t border-border">
+                  <span className="font-body text-muted-foreground">Итого к оплате</span>
                   <span className="font-display font-bold text-3xl">{total} ₽</span>
                 </div>
                 <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground rounded-none h-14 font-body text-base" onClick={() => { setCartOpen(false); navigate('/checkout'); }}>

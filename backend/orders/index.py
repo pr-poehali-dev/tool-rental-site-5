@@ -55,7 +55,7 @@ def adjust_stock(cur, cart, direction):
             )
 
 
-def build_message(order_id, name, status, cart, reject_reason=''):
+def build_message(order_id, name, status, cart, reject_reason='', admin_comment=''):
     """Формирует текст уведомления с составом заказа и ссылкой на статус."""
     site_url = os.environ.get('SITE_URL', '').rstrip('/')
     link = f"{site_url}/order/{order_id}" if site_url else ''
@@ -64,6 +64,7 @@ def build_message(order_id, name, status, cart, reject_reason=''):
     lines = [f"Строй_Rent: заявка №{order_id} — статус изменён на «{status_label}»."]
 
     items = cart or []
+    deposit_total = 0
     if items:
         lines.append('Состав заказа:')
         for item in items:
@@ -71,12 +72,19 @@ def build_message(order_id, name, status, cart, reject_reason=''):
                 qty = int(item.get('qty', 0) or 0)
                 days = int(item.get('days', 0) or 0)
                 price = int(item.get('price', 0) or 0)
+                deposit = int(item.get('deposit', 0) or 0)
                 lines.append(f"— {item.get('name', '')}: {qty} шт × {days} дн × {price} ₽")
+                deposit_total += deposit * qty
             except Exception:
                 pass
+        if deposit_total:
+            lines.append(f"Залог за инструмент: {deposit_total} ₽ (возвращается)")
 
     if status == 'rejected' and reject_reason:
         lines.append(f"Причина отклонения: {reject_reason}")
+
+    if status == 'processing' and admin_comment:
+        lines.append(f"Комментарий от менеджера: {admin_comment}")
 
     lines.append('Спасибо, что пользуетесь нашим сервисом!')
 
@@ -147,8 +155,8 @@ def send_email(to_email: str, subject: str, text: str):
         print(f'Ошибка отправки email на {to_email}: {e}')
 
 
-def notify_status_change(phone, email, order_id, name, status, cart, reject_reason=''):
-    text = build_message(order_id, name, status, cart, reject_reason)
+def notify_status_change(phone, email, order_id, name, status, cart, reject_reason='', admin_comment=''):
+    text = build_message(order_id, name, status, cart, reject_reason, admin_comment)
     send_sms(phone, text)
     send_email(email, f"Строй_Rent — заявка №{order_id}: {STATUS_LABELS.get(status, status)}", text)
 
@@ -178,17 +186,23 @@ def notify_admin_new_order(order_id, name, phone, email, cart, message, delivery
         lines.append('')
         lines.append('Состав заказа:')
         total = 0
+        deposit_total = 0
         for item in items:
             try:
                 qty = int(item.get('qty', 0) or 0)
                 days = int(item.get('days', 0) or 0)
                 price = int(item.get('price', 0) or 0)
+                deposit = int(item.get('deposit', 0) or 0)
                 sum_item = qty * days * price
                 total += sum_item
+                deposit_total += deposit * qty
                 lines.append(f"— {item.get('name', '')}: {qty} шт × {days} дн × {price} ₽ = {sum_item} ₽")
             except Exception:
                 pass
-        lines.append(f"Итого: {total} ₽")
+        lines.append(f"Сумма аренды: {total} ₽")
+        if deposit_total:
+            lines.append(f"Залог за инструмент: {deposit_total} ₽ (возвращается)")
+        lines.append(f"Итого к оплате: {total + deposit_total} ₽")
 
     if link:
         lines.append('')
@@ -218,7 +232,7 @@ def handler(event: dict, context) -> dict:
         cur = conn.cursor()
         cur.execute("""
             SELECT id, name, cart, status, created_at, due_at, delivery_method, delivery_address,
-                   receive_date, receive_time, payment_method, reject_reason, extensions
+                   receive_date, receive_time, payment_method, reject_reason, extensions, admin_comment
             FROM orders WHERE id = %s
         """, (order_id,))
         row = cur.fetchone()
@@ -234,6 +248,7 @@ def handler(event: dict, context) -> dict:
             'receiveDate': row[8].isoformat() if row[8] else None,
             'receiveTime': row[9], 'paymentMethod': row[10],
             'rejectReason': row[11], 'extensions': row[12] or [],
+            'adminComment': row[13],
         }
         return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps(result, ensure_ascii=False)}
 
@@ -300,7 +315,7 @@ def handler(event: dict, context) -> dict:
         cur.execute("""
             SELECT id, name, phone, message, cart, status, created_at, due_at, archived, extensions,
                    delivery_method, delivery_address, receive_date, receive_time, payment_method, email,
-                   reject_reason
+                   reject_reason, admin_comment
             FROM orders WHERE archived = %s ORDER BY created_at DESC LIMIT 200
         """, (show_archived,))
         rows = cur.fetchall()
@@ -312,7 +327,7 @@ def handler(event: dict, context) -> dict:
              'deliveryMethod': r[10], 'deliveryAddress': r[11],
              'receiveDate': r[12].isoformat() if r[12] else None,
              'receiveTime': r[13], 'paymentMethod': r[14], 'email': r[15],
-             'rejectReason': r[16]}
+             'rejectReason': r[16], 'adminComment': r[17]}
             for r in rows
         ]
         cur.close()
@@ -368,6 +383,7 @@ def handler(event: dict, context) -> dict:
             return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps({'ok': True})}
 
         status = body.get('status', 'new')
+        comment = body.get('comment', '')
         cur.execute("SELECT cart, status, due_at, phone, email, name FROM orders WHERE id = %s", (order_id,))
         row = cur.fetchone()
         if not row:
@@ -386,6 +402,8 @@ def handler(event: dict, context) -> dict:
             if prev_status == 'done':
                 adjust_stock(cur, cart, +1)
             cur.execute("UPDATE orders SET status=%s, archived=true WHERE id=%s", (status, order_id))
+        elif status == 'processing' and comment:
+            cur.execute("UPDATE orders SET status=%s, admin_comment=%s WHERE id=%s", (status, comment, order_id))
         else:
             cur.execute("UPDATE orders SET status=%s WHERE id=%s", (status, order_id))
 
@@ -394,7 +412,7 @@ def handler(event: dict, context) -> dict:
         conn.close()
 
         if status != prev_status:
-            notify_status_change(phone, email, order_id, name, status, cart)
+            notify_status_change(phone, email, order_id, name, status, cart, admin_comment=comment)
 
         return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps({'ok': True})}
 

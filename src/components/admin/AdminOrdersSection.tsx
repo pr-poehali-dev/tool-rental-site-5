@@ -54,6 +54,13 @@ interface AdminOrdersSectionProps {
   deleteOrderId: number | null;
   setDeleteOrderId: (id: number | null) => void;
   handleDeleteOrder: (id: number) => void;
+  openProcessing: (order: Record<string, unknown>) => void;
+  processingOrderItem: Record<string, unknown> | null;
+  setProcessingOrderItem: (item: Record<string, unknown> | null) => void;
+  processingComment: string;
+  setProcessingComment: (v: string) => void;
+  processingSaving: boolean;
+  handleProcessingSave: () => void;
 }
 
 export default function AdminOrdersSection({
@@ -62,6 +69,8 @@ export default function AdminOrdersSection({
   extendAmount, setExtendAmount, extendSaving, handleExtendSave,
   openReject, rejectOrderItem, setRejectOrderItem, rejectReason, setRejectReason,
   rejectSaving, handleRejectSave, deleteOrderId, setDeleteOrderId, handleDeleteOrder,
+  openProcessing, processingOrderItem, setProcessingOrderItem, processingComment,
+  setProcessingComment, processingSaving, handleProcessingSave,
 }: AdminOrdersSectionProps) {
   return (
     <>
@@ -104,7 +113,7 @@ export default function AdminOrdersSection({
                 {!showArchived && (
                   <div className="flex gap-2 flex-wrap justify-end">
                     {status !== 'done' && STATUS_SWITCH.map((s) => (
-                      <button key={s} onClick={() => handleOrderStatus(order.id as number, s)} disabled={status === s}
+                      <button key={s} onClick={() => s === 'processing' ? openProcessing(order) : handleOrderStatus(order.id as number, s)} disabled={status === s}
                         className={`font-body text-xs px-3 py-1.5 border transition-colors ${status === s ? 'bg-foreground text-background border-foreground' : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'}`}>
                         {STATUS_LABELS[s]}
                       </button>
@@ -137,6 +146,12 @@ export default function AdminOrdersSection({
                 <div className="flex items-start gap-2 bg-red-50 border border-red-200 px-3 py-2 mb-3">
                   <Icon name="Ban" size={14} className="text-red-600 mt-0.5 shrink-0" />
                   <p className="font-body text-xs text-red-700"><strong>Причина отклонения:</strong> {order.rejectReason as string}</p>
+                </div>
+              )}
+              {(order.adminComment as string) && (
+                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 px-3 py-2 mb-3">
+                  <Icon name="MessageCircle" size={14} className="text-amber-600 mt-0.5 shrink-0" />
+                  <p className="font-body text-xs text-amber-700"><strong>Комментарий менеджера:</strong> {order.adminComment as string}</p>
                 </div>
               )}
               {(order.deliveryMethod || order.paymentMethod || order.receiveDate) && (
@@ -255,6 +270,38 @@ export default function AdminOrdersSection({
                 {rejectSaving ? 'Сохраняем...' : 'Отклонить заявку'}
               </Button>
               <Button variant="outline" onClick={() => setRejectOrderItem(null)} className="rounded-none font-body">Отмена</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* МОДАЛКА КОММЕНТАРИЯ ПРИ ПЕРЕВОДЕ "В РАБОТЕ" */}
+      {processingOrderItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-background border border-border w-full max-w-sm">
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <h3 className="font-display font-bold text-xl">Перевести «В работе»</h3>
+              <button onClick={() => setProcessingOrderItem(null)} className="text-muted-foreground hover:text-foreground"><Icon name="X" size={20} /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="font-body text-sm text-muted-foreground">{processingOrderItem.name as string} — {processingOrderItem.phone as string}</p>
+              <div>
+                <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">Комментарий для клиента (необязательно)</label>
+                <textarea
+                  value={processingComment}
+                  onChange={(e) => setProcessingComment(e.target.value)}
+                  placeholder="Например: уточните удобное время получения, подтвердите адрес доставки..."
+                  rows={4}
+                  className="w-full rounded-none border border-input bg-background px-3 py-2 font-body text-sm resize-none"
+                />
+                <p className="font-body text-xs text-muted-foreground mt-1">Комментарий будет отправлен клиенту вместе с уведомлением о статусе.</p>
+              </div>
+            </div>
+            <div className="p-6 border-t border-border flex gap-3">
+              <Button onClick={handleProcessingSave} disabled={processingSaving} className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground rounded-none font-body">
+                {processingSaving ? 'Сохраняем...' : 'Перевести в работу'}
+              </Button>
+              <Button variant="outline" onClick={() => setProcessingOrderItem(null)} className="rounded-none font-body">Отмена</Button>
             </div>
           </div>
         </div>
