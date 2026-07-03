@@ -156,7 +156,7 @@ export default function Index() {
   const handleOrder = async () => {
     if (!orderName || !orderPhone) return;
     setOrderSending(true);
-    const cartData = cart.map((i) => ({ name: i.tool.name, price: i.tool.price, days: i.days, qty: i.qty }));
+    const cartData = cart.map((i) => ({ id: i.tool.id, name: i.tool.name, price: i.tool.price, days: i.days, qty: i.qty }));
     await submitOrder({ name: orderName, phone: orderPhone, message: orderMessage, cart: cartData });
     setOrderSending(false);
     setOrderSent(true);

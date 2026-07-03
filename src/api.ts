@@ -65,8 +65,8 @@ export async function adminDelete(entity: string, token: string, id: number) {
   return res.json();
 }
 
-export async function getOrders(token: string) {
-  const res = await fetch(ORDERS_URL, { headers: { 'X-Admin-Token': token } });
+export async function getOrders(token: string, archived = false) {
+  const res = await fetch(`${ORDERS_URL}${archived ? '?archived=1' : ''}`, { headers: { 'X-Admin-Token': token } });
   return res.json();
 }
 
@@ -75,6 +75,15 @@ export async function updateOrderStatus(token: string, id: number, status: strin
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
     body: JSON.stringify({ id, status }),
+  });
+  return res.json();
+}
+
+export async function extendOrder(token: string, id: number, extraDays: number, newAmount: number) {
+  const res = await fetch(ORDERS_URL, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+    body: JSON.stringify({ id, action: 'extend', extraDays, newAmount }),
   });
   return res.json();
 }

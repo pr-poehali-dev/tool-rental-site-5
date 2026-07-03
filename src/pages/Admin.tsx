@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
 import {
   adminLogin, checkAdminToken, adminGet, adminCreate, adminUpdate, adminDelete,
-  getOrders, updateOrderStatus, getClients, getClientOrders, updateClient,
+  getOrders, updateOrderStatus, extendOrder as extendOrderApi, getClients, getClientOrders, updateClient,
 } from '@/api';
 import ImageUploader from '@/components/ImageUploader';
 
@@ -12,8 +12,32 @@ type Tab = 'tools' | 'parts' | 'machines' | 'orders' | 'clients';
 
 const TOOL_CATEGORIES = ['Электроинструмент', 'Сварка', 'Ручной инструмент', 'Измерение', 'Электромонтаж', 'Сад и техника', 'Экипировка'];
 const PART_CATEGORIES = ['Оснастка'];
-const STATUS_LABELS: Record<string, string> = { new: 'Новая', processing: 'В работе', done: 'Выполнена' };
-const STATUS_COLORS: Record<string, string> = { new: 'bg-blue-100 text-blue-700', processing: 'bg-amber-100 text-amber-700', done: 'bg-green-100 text-green-700' };
+const STATUS_SWITCH: string[] = ['new', 'processing', 'done'];
+const STATUS_LABELS: Record<string, string> = { new: 'Новая', processing: 'В работе', done: 'Выполнена', returned: 'Возвращена' };
+const STATUS_COLORS: Record<string, string> = { new: 'bg-blue-100 text-blue-700', processing: 'bg-amber-100 text-amber-700', done: 'bg-green-100 text-green-700', returned: 'bg-gray-200 text-gray-600' };
+
+function OrderCountdown({ dueAt }: { dueAt: string }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const diff = new Date(dueAt).getTime() - now;
+  const overdue = diff < 0;
+  const abs = Math.abs(diff);
+  const days = Math.floor(abs / 86400000);
+  const hours = Math.floor((abs % 86400000) / 3600000);
+  const minutes = Math.floor((abs % 3600000) / 60000);
+  const seconds = Math.floor((abs % 60000) / 1000);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return (
+    <div className={`inline-flex items-center gap-1.5 font-body text-xs px-2.5 py-1 ${overdue ? 'bg-red-100 text-red-700' : 'bg-blue-50 text-blue-700'}`}>
+      <Icon name={overdue ? 'AlertTriangle' : 'Timer'} size={12} />
+      {overdue ? 'Просрочено: ' : 'Осталось: '}
+      {days > 0 && `${days}д `}{pad(hours)}:{pad(minutes)}:{pad(seconds)}
+    </div>
+  );
+}
 
 function emptyTool() {
   return { name: '', category: 'Электроинструмент', price: 0, image: '', stock: 0, totalStock: 0, specs: '', toolType: '', material: [] as string[], active: true };
@@ -62,6 +86,13 @@ export default function Admin() {
   const [data, setData] = useState<Record<Tab, unknown[]>>({ tools: [], parts: [], machines: [], orders: [], clients: [] });
   const [dataLoading, setDataLoading] = useState(false);
 
+  // Заявки — архив + продление
+  const [showArchived, setShowArchived] = useState(false);
+  const [extendOrderItem, setExtendOrderItem] = useState<Record<string, unknown> | null>(null);
+  const [extendDays, setExtendDays] = useState(1);
+  const [extendAmount, setExtendAmount] = useState(0);
+  const [extendSaving, setExtendSaving] = useState(false);
+
   // Каталог — редактирование
   const [editItem, setEditItem] = useState<Record<string, unknown> | null>(null);
   const [isNew, setIsNew] = useState(false);
@@ -96,7 +127,7 @@ export default function Admin() {
     setClientOrders([]);
 
     let loader: Promise<unknown[]>;
-    if (tab === 'orders') loader = getOrders(token);
+    if (tab === 'orders') loader = getOrders(token, showArchived);
     else if (tab === 'clients') loader = getClients(token);
     else loader = adminGet(tab === 'machines' ? 'machines' : tab, token);
 
@@ -104,7 +135,7 @@ export default function Admin() {
       setData((prev) => ({ ...prev, [tab]: Array.isArray(d) ? d : [] }));
       setDataLoading(false);
     }).catch(() => setDataLoading(false));
-  }, [tab, authed]);
+  }, [tab, authed, showArchived]);
 
   const handleLogin = async () => {
     setAuthLoading(true);
@@ -153,7 +184,25 @@ export default function Admin() {
 
   const handleOrderStatus = async (id: number, status: string) => {
     await updateOrderStatus(token, id, status);
-    const updated = await getOrders(token);
+    const updated = await getOrders(token, showArchived);
+    setData((prev) => ({ ...prev, orders: Array.isArray(updated) ? updated : [] }));
+  };
+
+  const openExtend = (order: Record<string, unknown>) => {
+    setExtendOrderItem(order);
+    setExtendDays(1);
+    const cart = (order.cart as { qty: number; price: number }[]) || [];
+    const dailyTotal = cart.reduce((s, i) => s + i.qty * i.price, 0);
+    setExtendAmount(dailyTotal);
+  };
+
+  const handleExtendSave = async () => {
+    if (!extendOrderItem) return;
+    setExtendSaving(true);
+    await extendOrderApi(token, extendOrderItem.id as number, extendDays, extendAmount);
+    setExtendSaving(false);
+    setExtendOrderItem(null);
+    const updated = await getOrders(token, showArchived);
     setData((prev) => ({ ...prev, orders: Array.isArray(updated) ? updated : [] }));
   };
 
@@ -271,7 +320,17 @@ export default function Admin() {
             </Button>
           </div>
         )}
-        {tab === 'orders' && <h2 className="font-display font-bold text-2xl mb-6">Заявки от клиентов</h2>}
+        {tab === 'orders' && (
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="font-display font-bold text-2xl">{showArchived ? 'Архив заявок' : 'Заявки от клиентов'}</h2>
+            <div className="flex gap-1 bg-background border border-border p-1">
+              <button onClick={() => setShowArchived(false)} className={`font-body text-sm px-3 py-1.5 transition-colors ${!showArchived ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}>Активные</button>
+              <button onClick={() => setShowArchived(true)} className={`font-body text-sm px-3 py-1.5 transition-colors flex items-center gap-1.5 ${showArchived ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}>
+                <Icon name="Archive" size={14} /> Архив
+              </button>
+            </div>
+          </div>
+        )}
         {tab === 'clients' && <h2 className="font-display font-bold text-2xl mb-6">База клиентов</h2>}
 
         {dataLoading ? (
@@ -354,45 +413,83 @@ export default function Admin() {
             {/* ЗАЯВКИ */}
             {tab === 'orders' && (
               <div className="space-y-3">
-                {items.length === 0 && <div className="bg-background border border-border p-12 text-center text-muted-foreground font-body">Заявок пока нет</div>}
-                {items.map((order) => (
-                  <div key={order.id as number} className="bg-background border border-border p-5">
-                    <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
-                      <div>
-                        <div className="flex items-center gap-3 mb-1">
-                          <span className="font-display font-semibold text-lg">{order.name as string}</span>
-                          <span className={`px-2 py-0.5 text-xs font-body rounded ${STATUS_COLORS[order.status as string] || 'bg-secondary text-muted-foreground'}`}>
-                            {STATUS_LABELS[order.status as string] || order.status as string}
-                          </span>
-                        </div>
-                        <div className="font-body text-sm text-muted-foreground">{order.phone as string}</div>
-                        <div className="font-body text-xs text-muted-foreground mt-0.5">{new Date(order.createdAt as string).toLocaleString('ru')}</div>
-                      </div>
-                      <div className="flex gap-2">
-                        {Object.keys(STATUS_LABELS).map((s) => (
-                          <button key={s} onClick={() => handleOrderStatus(order.id as number, s)} disabled={order.status === s}
-                            className={`font-body text-xs px-3 py-1.5 border transition-colors ${order.status === s ? 'bg-foreground text-background border-foreground' : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'}`}>
-                            {STATUS_LABELS[s]}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    {order.message && <p className="font-body text-sm bg-secondary px-3 py-2 mb-3">{order.message as string}</p>}
-                    {Array.isArray(order.cart) && (order.cart as unknown[]).length > 0 && (
-                      <div>
-                        <div className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-2">Корзина</div>
-                        <div className="space-y-1">
-                          {(order.cart as Record<string, unknown>[]).map((ci, i) => (
-                            <div key={i} className="font-body text-sm flex items-center justify-between">
-                              <span>{ci.name as string}</span>
-                              <span className="text-muted-foreground">{ci.qty as number} шт × {ci.days as number} дн × {ci.price as number} ₽ = <strong>{(ci.qty as number) * (ci.days as number) * (ci.price as number)} ₽</strong></span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                {items.length === 0 && (
+                  <div className="bg-background border border-border p-12 text-center text-muted-foreground font-body">
+                    {showArchived ? 'Архив пуст' : 'Заявок пока нет'}
                   </div>
-                ))}
+                )}
+                {items.map((order) => {
+                  const status = order.status as string;
+                  const dueAt = order.dueAt as string | null;
+                  const extensions = (order.extensions as { days: number; amount: number }[]) || [];
+                  return (
+                    <div key={order.id as number} className="bg-background border border-border p-5">
+                      <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+                        <div>
+                          <div className="flex items-center gap-3 mb-1 flex-wrap">
+                            <span className="font-display font-semibold text-lg">{order.name as string}</span>
+                            <span className={`px-2 py-0.5 text-xs font-body rounded ${STATUS_COLORS[status] || 'bg-secondary text-muted-foreground'}`}>
+                              {STATUS_LABELS[status] || status}
+                            </span>
+                            {status === 'done' && dueAt && <OrderCountdown dueAt={dueAt} />}
+                          </div>
+                          <div className="font-body text-sm text-muted-foreground">{order.phone as string}</div>
+                          <div className="font-body text-xs text-muted-foreground mt-0.5">{new Date(order.createdAt as string).toLocaleString('ru')}</div>
+                        </div>
+
+                        {!showArchived && (
+                          <div className="flex gap-2 flex-wrap justify-end">
+                            {status !== 'done' && STATUS_SWITCH.map((s) => (
+                              <button key={s} onClick={() => handleOrderStatus(order.id as number, s)} disabled={status === s}
+                                className={`font-body text-xs px-3 py-1.5 border transition-colors ${status === s ? 'bg-foreground text-background border-foreground' : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'}`}>
+                                {STATUS_LABELS[s]}
+                              </button>
+                            ))}
+                            {status === 'done' && (
+                              <>
+                                <button onClick={() => handleOrderStatus(order.id as number, 'returned')}
+                                  className="font-body text-xs px-3 py-1.5 border border-border text-muted-foreground hover:border-green-600 hover:text-green-700 transition-colors flex items-center gap-1.5">
+                                  <Icon name="CornerDownLeft" size={13} /> Вернул
+                                </button>
+                                <button onClick={() => openExtend(order)}
+                                  className="font-body text-xs px-3 py-1.5 border border-border text-muted-foreground hover:border-accent hover:text-accent transition-colors flex items-center gap-1.5">
+                                  <Icon name="CalendarPlus" size={13} /> Продлил
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {order.message && <p className="font-body text-sm bg-secondary px-3 py-2 mb-3">{order.message as string}</p>}
+                      {Array.isArray(order.cart) && (order.cart as unknown[]).length > 0 && (
+                        <div>
+                          <div className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-2">Корзина</div>
+                          <div className="space-y-1">
+                            {(order.cart as Record<string, unknown>[]).map((ci, i) => (
+                              <div key={i} className="font-body text-sm flex items-center justify-between">
+                                <span>{ci.name as string}</span>
+                                <span className="text-muted-foreground">{ci.qty as number} шт × {ci.days as number} дн × {ci.price as number} ₽ = <strong>{(ci.qty as number) * (ci.days as number) * (ci.price as number)} ₽</strong></span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {extensions.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-border">
+                          <div className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-2">Продления</div>
+                          <div className="space-y-1">
+                            {extensions.map((ext, i) => (
+                              <div key={i} className="font-body text-sm flex items-center justify-between text-muted-foreground">
+                                <span>+{ext.days} дн</span>
+                                <span>{ext.amount.toLocaleString('ru')} ₽</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -701,6 +798,35 @@ export default function Admin() {
             <div className="flex gap-3">
               <Button onClick={() => handleDelete(deleteId)} className="flex-1 bg-destructive hover:bg-destructive/90 text-white rounded-none font-body">Удалить</Button>
               <Button variant="outline" onClick={() => setDeleteId(null)} className="flex-1 rounded-none font-body">Отмена</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* МОДАЛКА ПРОДЛЕНИЯ ЗАЯВКИ */}
+      {extendOrderItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-background border border-border w-full max-w-sm">
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <h3 className="font-display font-bold text-xl">Продление аренды</h3>
+              <button onClick={() => setExtendOrderItem(null)} className="text-muted-foreground hover:text-foreground"><Icon name="X" size={20} /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="font-body text-sm text-muted-foreground">{extendOrderItem.name as string} — {extendOrderItem.phone as string}</p>
+              <div>
+                <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">На сколько дней продлил</label>
+                <Input type="number" min={1} value={extendDays} onChange={(e) => setExtendDays(Math.max(1, parseInt(e.target.value) || 1))} className="rounded-none font-body" />
+              </div>
+              <div>
+                <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">Новая сумма оплаты (₽)</label>
+                <Input type="number" min={0} value={extendAmount} onChange={(e) => setExtendAmount(Math.max(0, parseInt(e.target.value) || 0))} className="rounded-none font-body" />
+              </div>
+            </div>
+            <div className="p-6 border-t border-border flex gap-3">
+              <Button onClick={handleExtendSave} disabled={extendSaving} className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground rounded-none font-body">
+                {extendSaving ? 'Сохраняем...' : 'Сохранить'}
+              </Button>
+              <Button variant="outline" onClick={() => setExtendOrderItem(null)} className="rounded-none font-body">Отмена</Button>
             </div>
           </div>
         </div>
