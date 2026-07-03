@@ -112,9 +112,7 @@ export default function AdminOrdersSection({
                     {status === 'done' && (
                       <>
                         <button onClick={() => handleOrderStatus(order.id as number, 'returned')}
-                          className="font-body text-xs px-3 py-1.5 border border-border text-muted-foreground hover:border-green-600 hover:text-green-700 transition-colors flex items-center gap-1.5">
-                          <Icon name="CornerDownLeft" size={13} /> Вернул
-                        </button>
+                          className="font-body text-xs px-3 py-1.5 border border-border text-muted-foreground hover:border-green-600 hover:text-green-700 transition-colors flex items-center gap-1.5">Завершено</button>
                         <button onClick={() => openExtend(order)}
                           className="font-body text-xs px-3 py-1.5 border border-border text-muted-foreground hover:border-accent hover:text-accent transition-colors flex items-center gap-1.5">
                           <Icon name="CalendarPlus" size={13} /> Продлил
