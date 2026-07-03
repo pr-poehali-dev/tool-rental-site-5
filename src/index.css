@@ -103,3 +103,107 @@
 .hover-scale {
   @apply transition-transform duration-300 hover:scale-[1.02];
 }
+
+@keyframes excavator-boom {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(-12deg);
+  }
+  60% {
+    transform: rotate(6deg);
+  }
+}
+@keyframes excavator-arm {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(20deg);
+  }
+  60% {
+    transform: rotate(-15deg);
+  }
+}
+@keyframes excavator-bucket {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(-25deg);
+  }
+  60% {
+    transform: rotate(15deg);
+  }
+}
+@keyframes dirt-pile {
+  0%,
+  20% {
+    transform: scale(0.85);
+    opacity: 0.6;
+  }
+  50%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes box-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.8);
+  }
+  15%,
+  85% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes crane-arm-swing {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(18deg);
+  }
+}
+@keyframes crane-hook-swing {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-10deg);
+  }
+}
+
+.group:hover .machine-anim-excavator-boom {
+  animation: excavator-boom 1.6s ease-in-out infinite;
+}
+.group:hover .machine-anim-excavator-arm {
+  animation: excavator-arm 1.6s ease-in-out infinite;
+}
+.group:hover .machine-anim-excavator-bucket {
+  animation: excavator-bucket 1.6s ease-in-out infinite;
+}
+.group:hover .machine-anim-dirt-pile {
+  animation: dirt-pile 1.6s ease-in-out infinite;
+}
+.group:hover .machine-anim-box-pop {
+  animation: box-pop 1.8s ease-in-out infinite;
+}
+.group:hover .machine-anim-crane-arm {
+  animation: crane-arm-swing 2s ease-in-out infinite;
+}
+.group:hover .machine-anim-crane-hook {
+  animation: crane-hook-swing 2s ease-in-out infinite;
+}

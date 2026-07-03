@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { getCatalog, submitOrder } from '@/api';
 import ImageSlider from '@/components/ImageSlider';
+import MachineAnimation from '@/components/MachineAnimation';
 
 interface Tool {
   id: number;
@@ -93,7 +94,7 @@ export default function Index() {
   const [partSearch, setPartSearch] = useState('');
 
   // Пагинация «Посмотреть ещё»
-  const PAGE_LIMIT = 15;
+  const PAGE_LIMIT = 16;
   const [showAllTools, setShowAllTools] = useState(false);
   const [showAllParts, setShowAllParts] = useState(false);
   const [showAllMachines, setShowAllMachines] = useState(false);
@@ -477,12 +478,15 @@ export default function Index() {
             <>
             <div className="grid lg:grid-cols-3 gap-px bg-border border border-border">
               {(showAllMachines ? machines : machines.slice(0, PAGE_LIMIT)).map((m) => (
-                <div key={m.id} className="bg-card flex flex-col">
-                  <ImageSlider
-                    images={m.images?.length ? m.images : [m.image]}
-                    alt={m.name}
-                    className="aspect-[4/3] bg-secondary"
-                  />
+                <div key={m.id} className="group bg-card flex flex-col">
+                  <div className="relative aspect-[4/3] bg-secondary overflow-hidden">
+                    <ImageSlider
+                      images={m.images?.length ? m.images : [m.image]}
+                      alt={m.name}
+                      className="w-full h-full"
+                    />
+                    <MachineAnimation name={m.name} />
+                  </div>
                   <div className="p-6 flex flex-col flex-1">
                     <div className="mb-4">
                       <h3 className="font-display font-bold text-2xl leading-tight">{m.name}</h3>
