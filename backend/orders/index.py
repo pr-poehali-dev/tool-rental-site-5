@@ -94,6 +94,8 @@ def build_message(order_id, name, status, cart, reject_reason='', admin_comment=
     elif link:
         lines.append(f"Статус заказа: {link}")
 
+    lines.append('Наши контакты для связи: тел: 8 (901) 504-64-44 и почту stroy_rent@list.ru')
+
     return '\n'.join(lines)
 
 

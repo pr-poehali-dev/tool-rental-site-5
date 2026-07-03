@@ -37,6 +37,9 @@ def get_s3():
         aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'],
     )
 
+MAX_IMAGE_SIZE = 3 * 1024 * 1024  # 3 МБ — с запасом под лимит размера запроса облачной функции
+
+
 def upload_image(body: dict) -> dict:
     """Загружает фото в S3 из base64 или URL, возвращает {url}."""
     source = body.get('source', 'base64')
@@ -65,14 +68,20 @@ def upload_image(body: dict) -> dict:
 
     if not image_bytes:
         return {'error': 'Нет данных'}
-    if len(image_bytes) > 10 * 1024 * 1024:
-        return {'error': 'Файл слишком большой (макс. 10 МБ)'}
+    if len(image_bytes) > MAX_IMAGE_SIZE:
+        return {'error': f'Файл слишком большой (макс. {MAX_IMAGE_SIZE // (1024 * 1024)} МБ)'}
 
-    key = f"tool-images/{uuid.uuid4().hex}.{ext}"
-    ct_map = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'webp': 'image/webp', 'gif': 'image/gif'}
-    get_s3().put_object(Bucket='files', Key=key, Body=image_bytes, ContentType=ct_map.get(ext, 'image/jpeg'))
-    cdn_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
-    return {'url': cdn_url}
+    try:
+        key = f"tool-images/{uuid.uuid4().hex}.{ext}"
+        ct_map = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'webp': 'image/webp', 'gif': 'image/gif'}
+        get_s3().put_object(Bucket='files', Key=key, Body=image_bytes, ContentType=ct_map.get(ext, 'image/jpeg'))
+        cdn_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+        return {'url': cdn_url}
+    except Exception as e:
+        return {'error': f'Не удалось сохранить файл в хранилище: {e}'}
+
+MAX_PDF_SIZE = 3 * 1024 * 1024  # 3 МБ — с запасом под лимит размера запроса облачной функции
+
 
 def upload_pdf(body: dict) -> dict:
     """Загружает PDF-инструкцию в S3 из base64, возвращает {url}."""
@@ -85,17 +94,20 @@ def upload_pdf(body: dict) -> dict:
     try:
         pdf_bytes = base64.b64decode(data)
     except Exception:
-        return {'error': 'Не удалось прочитать файл'}
+        return {'error': 'Не удалось прочитать файл. Попробуйте выбрать файл заново'}
 
     if not pdf_bytes:
         return {'error': 'Нет данных'}
-    if len(pdf_bytes) > 20 * 1024 * 1024:
-        return {'error': 'Файл слишком большой (макс. 20 МБ)'}
+    if len(pdf_bytes) > MAX_PDF_SIZE:
+        return {'error': f'Файл слишком большой (макс. {MAX_PDF_SIZE // (1024 * 1024)} МБ). Сожмите PDF или уменьшите разрешение картинок внутри него'}
 
-    key = f"tool-manuals/{uuid.uuid4().hex}.pdf"
-    get_s3().put_object(Bucket='files', Key=key, Body=pdf_bytes, ContentType='application/pdf')
-    cdn_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
-    return {'url': cdn_url}
+    try:
+        key = f"tool-manuals/{uuid.uuid4().hex}.pdf"
+        get_s3().put_object(Bucket='files', Key=key, Body=pdf_bytes, ContentType='application/pdf')
+        cdn_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+        return {'url': cdn_url}
+    except Exception as e:
+        return {'error': f'Не удалось сохранить файл в хранилище: {e}'}
 
 def handler(event: dict, context) -> dict:
     """CRUD + загрузка фото и PDF-инструкций для инструментов, комплектующих и спецтехники. Требует X-Admin-Token."""
@@ -116,7 +128,10 @@ def handler(event: dict, context) -> dict:
     # Загрузка фото — отдельный маршрут
     if action == 'upload' and method == 'POST':
         conn.close()
-        body = json.loads(event.get('body') or '{}')
+        try:
+            body = json.loads(event.get('body') or '{}')
+        except Exception:
+            return {'statusCode': 400, 'headers': HEADERS, 'body': json.dumps({'error': f'Файл слишком большой (макс. {MAX_IMAGE_SIZE // (1024 * 1024)} МБ) или повреждён'})}
         result = upload_image(body)
         if 'error' in result:
             return {'statusCode': 400, 'headers': HEADERS, 'body': json.dumps(result)}
@@ -125,7 +140,10 @@ def handler(event: dict, context) -> dict:
     # Загрузка PDF-инструкции — отдельный маршрут
     if action == 'upload_pdf' and method == 'POST':
         conn.close()
-        body = json.loads(event.get('body') or '{}')
+        try:
+            body = json.loads(event.get('body') or '{}')
+        except Exception:
+            return {'statusCode': 400, 'headers': HEADERS, 'body': json.dumps({'error': f'Файл слишком большой (макс. {MAX_PDF_SIZE // (1024 * 1024)} МБ) или повреждён'})}
         result = upload_pdf(body)
         if 'error' in result:
             return {'statusCode': 400, 'headers': HEADERS, 'body': json.dumps(result)}

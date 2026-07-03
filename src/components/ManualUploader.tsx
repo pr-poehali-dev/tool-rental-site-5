@@ -17,18 +17,26 @@ export default function ManualUploader({ pdfUrl, videoUrl, onChangePdf, onChange
   const [error, setError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const MAX_PDF_MB = 3;
+
   const handleFile = async (files: FileList | null) => {
     const file = files?.[0];
     if (!file) return;
     setError('');
+    if (file.size > MAX_PDF_MB * 1024 * 1024) {
+      setError(`Файл слишком большой (макс. ${MAX_PDF_MB} МБ). Сожмите PDF или уменьшите разрешение картинок внутри него`);
+      if (fileRef.current) fileRef.current.value = '';
+      return;
+    }
     setUploading(true);
     try {
       const url = await uploadPdf(token, file);
       onChangePdf(url);
     } catch (e: unknown) {
-      setError((e as Error).message || 'Ошибка загрузки');
+      setError((e as Error).message || 'Ошибка загрузки. Проверьте интернет-соединение и попробуйте снова');
     }
     setUploading(false);
+    if (fileRef.current) fileRef.current.value = '';
   };
 
   return (
@@ -68,6 +76,7 @@ export default function ManualUploader({ pdfUrl, videoUrl, onChangePdf, onChange
           </Button>
         )}
         {error && <p className="font-body text-xs text-destructive mt-1">{error}</p>}
+        {!pdfUrl && !error && <p className="font-body text-xs text-muted-foreground mt-1">Максимум {MAX_PDF_MB} МБ</p>}
       </div>
 
       {/* Видео */}

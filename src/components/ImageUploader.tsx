@@ -41,6 +41,8 @@ export default function ImageUploader({ images, onChange, token, maxImages = 5 }
     onChange(next);
   };
 
+  const MAX_IMAGE_MB = 3;
+
   const handleFiles = async (files: FileList | null) => {
     if (!files) return;
     setError('');
@@ -48,6 +50,10 @@ export default function ImageUploader({ images, onChange, token, maxImages = 5 }
     const toUpload = Array.from(files).slice(0, slots);
     const uploaded: string[] = [];
     for (let i = 0; i < toUpload.length; i++) {
+      if (toUpload[i].size > MAX_IMAGE_MB * 1024 * 1024) {
+        setError(`Файл «${toUpload[i].name}» слишком большой (макс. ${MAX_IMAGE_MB} МБ)`);
+        continue;
+      }
       setUploading(i);
       try {
         const url = await uploadImageBase64(token, toUpload[i]);
@@ -58,6 +64,7 @@ export default function ImageUploader({ images, onChange, token, maxImages = 5 }
     }
     setUploading(null);
     if (uploaded.length) addImages(uploaded);
+    if (fileRef.current) fileRef.current.value = '';
   };
 
   const handleUrlAdd = async () => {
