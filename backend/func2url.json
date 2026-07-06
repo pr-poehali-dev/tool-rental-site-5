@@ -1,4 +1,6 @@
 {
+  "client-auth": "https://functions.poehali.dev/ba20e787-2790-4d8a-a823-87650d2d4bdb",
+  "client-account": "https://functions.poehali.dev/6e6b2653-d8e8-4d32-bf0b-b192ab6a89a3",
   "admin-clients": "https://functions.poehali.dev/83e99fc4-f512-4980-9255-d16955727b58",
   "admin-tools": "https://functions.poehali.dev/57c48d74-1d91-4e4c-8ee7-673a291f9b59",
   "orders": "https://functions.poehali.dev/f90c3461-3335-46f3-a88a-7840ec3a353a",

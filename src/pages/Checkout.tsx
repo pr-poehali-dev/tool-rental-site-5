@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { submitOrder } from '@/api';
+import { submitOrder, submitOrderAuthed, getClientAccount } from '@/api';
+import { useClientAuth } from '@/hooks/useClientAuth';
 
 interface CartItem {
   tool: { id: number; name: string; price: number; image: string; stock: number; deposit?: number };
@@ -30,6 +31,7 @@ const PAYMENT_OPTIONS = [
 
 export default function Checkout() {
   const navigate = useNavigate();
+  const { token, client, authed } = useClientAuth();
   const [cart, setCart] = useState<CartItem[]>([]);
 
   const [name, setName] = useState('');
@@ -42,6 +44,19 @@ export default function Checkout() {
   const [date, setDate] = useState<Date | undefined>();
   const [timeSlot, setTimeSlot] = useState(TIME_SLOTS[0]);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer'>('cash');
+
+  // Автозаполнение и подстановка сохранённого адреса для авторизованных клиентов
+  useEffect(() => {
+    if (!authed || !client) return;
+    if (client.fullName) setName(client.fullName);
+    if (client.phone) setPhone(client.phone);
+    if (client.email) setEmail(client.email);
+    getClientAccount(token).then((d) => {
+      const def = d?.addresses?.find((a: { isDefault: boolean; address: string }) => a.isDefault) || d?.addresses?.[0];
+      if (def) setAddress(def.address);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authed, client]);
 
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -72,7 +87,7 @@ export default function Checkout() {
     if (!canSubmit) return;
     setSending(true);
     const cartData = cart.map((i) => ({ id: i.tool.id, name: i.tool.name, price: i.tool.price, days: i.days, qty: i.qty, deposit: i.tool.deposit || 0 }));
-    const res = await submitOrder({
+    const orderPayload = {
       name,
       phone,
       email,
@@ -83,7 +98,8 @@ export default function Checkout() {
       receiveDate: date ? format(date, 'yyyy-MM-dd') : '',
       receiveTime: timeSlot,
       paymentMethod,
-    });
+    };
+    const res = authed ? await submitOrderAuthed(token, orderPayload) : await submitOrder(orderPayload);
     if (res && res.id) setOrderId(res.id);
     setSending(false);
     setSent(true);

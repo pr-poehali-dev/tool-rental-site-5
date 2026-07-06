@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { getCatalog, submitOrder } from '@/api';
 import ImageSlider from '@/components/ImageSlider';
 import MachineAnimation from '@/components/MachineAnimation';
+import { useClientAuth } from '@/hooks/useClientAuth';
 
 interface Tool {
   id: number;
@@ -79,6 +80,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function Index() {
   const navigate = useNavigate();
+  const { authed } = useClientAuth();
   // Данные из БД
   const [tools, setTools] = useState<Tool[]>([]);
   const [parts, setParts] = useState<Part[]>([]);
@@ -200,15 +202,21 @@ export default function Index() {
               </button>
             ))}
           </nav>
-          <Button variant="ghost" onClick={() => setCartOpen(true)} className="relative gap-2 font-body">
-            <Icon name="ShoppingCart" size={20} />
-            <span className="hidden sm:inline">Корзина</span>
-            {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-accent text-white text-xs rounded-full flex items-center justify-center">
-                {cartCount}
-              </span>
-            )}
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" onClick={() => navigate(authed ? '/account' : '/account/login')} className="gap-2 font-body">
+              <Icon name="User" size={18} />
+              <span className="hidden sm:inline">{authed ? 'Кабинет' : 'Войти'}</span>
+            </Button>
+            <Button variant="ghost" onClick={() => setCartOpen(true)} className="relative gap-2 font-body">
+              <Icon name="ShoppingCart" size={20} />
+              <span className="hidden sm:inline">Корзина</span>
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-accent text-white text-xs rounded-full flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
+            </Button>
+          </div>
         </div>
       </header>
 

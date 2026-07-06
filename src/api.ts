@@ -3,6 +3,8 @@ const ORDERS_URL = 'https://functions.poehali.dev/f90c3461-3335-46f3-a88a-7840ec
 const AUTH_URL = 'https://functions.poehali.dev/0a142230-94c7-497b-9474-dc169b7adcec';
 const ADMIN_TOOLS_URL = 'https://functions.poehali.dev/57c48d74-1d91-4e4c-8ee7-673a291f9b59';
 const CLIENTS_URL = 'https://functions.poehali.dev/83e99fc4-f512-4980-9255-d16955727b58';
+const CLIENT_AUTH_URL = 'https://functions.poehali.dev/ba20e787-2790-4d8a-a823-87650d2d4bdb';
+const CLIENT_ACCOUNT_URL = 'https://functions.poehali.dev/6e6b2653-d8e8-4d32-bf0b-b192ab6a89a3';
 
 export async function getCatalog() {
   const res = await fetch(CATALOG_URL);
@@ -200,6 +202,88 @@ export async function uploadImageUrl(token: string, url: string): Promise<string
   const data = await res.json();
   if (data.url) return data.url;
   throw new Error(data.error || 'Ошибка загрузки');
+}
+
+// ===== Личный кабинет клиента =====
+
+export async function requestClientCode(channel: 'email' | 'phone', contact: string, fullName?: string) {
+  const res = await fetch(`${CLIENT_AUTH_URL}?action=request_code`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ channel, contact, fullName: fullName || '' }),
+  });
+  return { ok: res.ok, data: await res.json() };
+}
+
+export async function verifyClientCode(channel: 'email' | 'phone', contact: string, code: string) {
+  const res = await fetch(`${CLIENT_AUTH_URL}?action=verify_code`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ channel, contact, code }),
+  });
+  return { ok: res.ok, data: await res.json() };
+}
+
+export async function checkClientToken(token: string) {
+  const res = await fetch(`${CLIENT_AUTH_URL}?token=${token}`);
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export async function clientLogout(token: string) {
+  await fetch(`${CLIENT_AUTH_URL}?action=logout`, {
+    method: 'POST',
+    headers: { 'X-Client-Token': token },
+  });
+}
+
+export async function getClientAccount(token: string) {
+  const res = await fetch(CLIENT_ACCOUNT_URL, { headers: { 'X-Client-Token': token } });
+  return res.json();
+}
+
+export async function updateClientProfile(token: string, fullName: string) {
+  const res = await fetch(CLIENT_ACCOUNT_URL, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'X-Client-Token': token },
+    body: JSON.stringify({ fullName }),
+  });
+  return res.json();
+}
+
+export async function addAccountAddress(token: string, address: string, label: string) {
+  const res = await fetch(`${CLIENT_ACCOUNT_URL}?action=add_address`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Client-Token': token },
+    body: JSON.stringify({ address, label }),
+  });
+  return res.json();
+}
+
+export async function setDefaultAddress(token: string, id: number) {
+  const res = await fetch(`${CLIENT_ACCOUNT_URL}?action=set_default_address`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'X-Client-Token': token },
+    body: JSON.stringify({ id }),
+  });
+  return res.json();
+}
+
+export async function deleteAccountAddress(token: string, id: number) {
+  const res = await fetch(`${CLIENT_ACCOUNT_URL}?action=address&id=${id}`, {
+    method: 'DELETE',
+    headers: { 'X-Client-Token': token },
+  });
+  return res.json();
+}
+
+export async function submitOrderAuthed(token: string, data: SubmitOrderData) {
+  const res = await fetch(ORDERS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Client-Token': token },
+    body: JSON.stringify(data),
+  });
+  return res.json();
 }
 
 export async function uploadPdf(token: string, file: File): Promise<string> {

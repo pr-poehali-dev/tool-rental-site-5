@@ -1,0 +1,19 @@
+{
+  "tests": [
+    {
+      "name": "Invalid email format",
+      "method": "POST",
+      "path": "/?action=request_code",
+      "body": {"contact": "not-an-email", "channel": "email"},
+      "expectedStatus": 400,
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Check invalid token",
+      "method": "GET",
+      "path": "/?token=invalidtoken123",
+      "expectedStatus": 401,
+      "bodyMatcher": "partial"
+    }
+  ]
+}

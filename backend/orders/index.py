@@ -267,12 +267,24 @@ def handler(event: dict, context) -> dict:
         if not email or at_pos <= 0 or at_pos >= len(email) - 1:
             conn.close()
             return {'statusCode': 400, 'headers': HEADERS, 'body': json.dumps({'error': 'Укажите корректный email'})}
+
+        # Если клиент авторизован в личном кабинете — привязываем заказ к его профилю
+        client_token = (event.get('headers') or {}).get('X-Client-Token', '')
+        logged_client_id = None
+        if client_token:
+            cur = conn.cursor()
+            cur.execute("SELECT client_id FROM client_sessions WHERE id = %s AND expires_at > NOW()", (client_token,))
+            row = cur.fetchone()
+            cur.close()
+            if row:
+                logged_client_id = row[0]
+
         cur = conn.cursor()
         cur.execute(
             """INSERT INTO orders
                (name, phone, message, cart, delivery_method, delivery_address,
-                receive_date, receive_time, payment_method, email)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+                receive_date, receive_time, payment_method, email, client_id)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
             (name, phone, body.get('message', ''),
              json.dumps(body.get('cart', []), ensure_ascii=False),
              body.get('deliveryMethod', 'pickup'),
@@ -280,14 +292,15 @@ def handler(event: dict, context) -> dict:
              body.get('receiveDate') or None,
              body.get('receiveTime', ''),
              body.get('paymentMethod', 'cash'),
-             body.get('email', ''))
+             body.get('email', ''),
+             logged_client_id)
         )
         new_id = cur.fetchone()[0]
         if phone:
             cur.execute("""
                 INSERT INTO clients (phone, full_name)
                 VALUES (%s, %s)
-                ON CONFLICT (phone) DO UPDATE
+                ON CONFLICT (phone) WHERE phone <> '' DO UPDATE
                 SET full_name = CASE
                     WHEN clients.full_name = '' THEN EXCLUDED.full_name
                     ELSE clients.full_name

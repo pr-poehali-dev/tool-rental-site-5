@@ -161,7 +161,7 @@ def handler(event: dict, context) -> dict:
         cur.execute("""
             INSERT INTO clients (phone, full_name, notes)
             VALUES (%s, %s, %s)
-            ON CONFLICT (phone) DO UPDATE
+            ON CONFLICT (phone) WHERE phone <> '' DO UPDATE
             SET full_name = EXCLUDED.full_name,
                 notes = EXCLUDED.notes,
                 updated_at = NOW()
