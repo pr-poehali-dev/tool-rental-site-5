@@ -152,11 +152,23 @@ def handler(event: dict, context) -> dict:
     entity = params.get('entity', 'tools')
     table = entity if entity in ('tools', 'parts') else 'spec_machines'
 
+    # Смена порядка позиций (drag & drop) — отдельный маршрут
+    if action == 'reorder' and method == 'PUT':
+        body = json.loads(event.get('body') or '{}')
+        order = body.get('order', [])
+        for i, item_id in enumerate(order):
+            cur = conn.cursor()
+            cur.execute(f"UPDATE {table} SET sort_order = %s WHERE id = %s", (i, item_id))
+            cur.close()
+        conn.commit()
+        conn.close()
+        return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps({'ok': True})}
+
     cur = conn.cursor()
 
     if method == 'GET':
         if table == 'spec_machines':
-            cur.execute("SELECT id, name, subtitle, image, images, specs, attachments, price, price_unit, available FROM spec_machines ORDER BY id")
+            cur.execute("SELECT id, name, subtitle, image, images, specs, attachments, price, price_unit, available FROM spec_machines ORDER BY sort_order, id")
             rows = cur.fetchall()
             result = []
             for r in rows:
@@ -166,7 +178,7 @@ def handler(event: dict, context) -> dict:
                                 'specs': r[5], 'attachments': r[6] or [],
                                 'price': r[7], 'priceUnit': r[8], 'available': r[9]})
         elif table == 'parts':
-            cur.execute("SELECT id, name, category, price, image, images, stock, specs, tool_type, material, active FROM parts ORDER BY category, name")
+            cur.execute("SELECT id, name, category, price, image, images, stock, specs, tool_type, material, active FROM parts ORDER BY sort_order, id")
             rows = cur.fetchall()
             result = []
             for r in rows:
@@ -176,7 +188,7 @@ def handler(event: dict, context) -> dict:
                                 'stock': r[6], 'specs': r[7], 'toolType': r[8],
                                 'material': r[9] or [], 'active': r[10]})
         else:
-            cur.execute("SELECT id, name, category, price, image, images, stock, total_stock, specs, tool_type, material, active, deposit, manual_pdf_url, manual_video_url FROM tools ORDER BY category, name")
+            cur.execute("SELECT id, name, category, price, image, images, stock, total_stock, specs, tool_type, material, active, deposit, manual_pdf_url, manual_video_url FROM tools ORDER BY sort_order, id")
             rows = cur.fetchall()
             result = []
             for r in rows:
@@ -197,25 +209,27 @@ def handler(event: dict, context) -> dict:
     main_image = images[0] if images else body.get('image', '')
 
     if method == 'POST':
+        cur.execute(f"SELECT COALESCE(MAX(sort_order), 0) + 1 FROM {table}")
+        next_order = cur.fetchone()[0]
         if table == 'spec_machines':
             cur.execute(
-                "INSERT INTO spec_machines (name, subtitle, image, images, specs, attachments, price, price_unit, available) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+                "INSERT INTO spec_machines (name, subtitle, image, images, specs, attachments, price, price_unit, available, sort_order) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
                 (body.get('name',''), body.get('subtitle',''), main_image, images,
                  json.dumps(body.get('specs',[]), ensure_ascii=False), body.get('attachments',[]),
-                 body.get('price',0), body.get('priceUnit','час'), body.get('available', True))
+                 body.get('price',0), body.get('priceUnit','час'), body.get('available', True), next_order)
             )
         elif table == 'parts':
             cur.execute(
-                "INSERT INTO parts (name, category, price, image, images, stock, specs, tool_type, material) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+                "INSERT INTO parts (name, category, price, image, images, stock, specs, tool_type, material, sort_order) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
                 (body.get('name',''), body.get('category',''), body.get('price',0), main_image, images,
-                 body.get('stock',0), body.get('specs',''), body.get('toolType',''), body.get('material',[]))
+                 body.get('stock',0), body.get('specs',''), body.get('toolType',''), body.get('material',[]), next_order)
             )
         else:
             cur.execute(
-                "INSERT INTO tools (name, category, price, image, images, stock, total_stock, specs, tool_type, material, deposit, manual_pdf_url, manual_video_url) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+                "INSERT INTO tools (name, category, price, image, images, stock, total_stock, specs, tool_type, material, deposit, manual_pdf_url, manual_video_url, sort_order) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
                 (body.get('name',''), body.get('category',''), body.get('price',0), main_image, images,
                  body.get('stock',0), body.get('totalStock',0), body.get('specs',''), body.get('toolType',''), body.get('material',[]), body.get('deposit',0),
-                 body.get('manualPdfUrl',''), body.get('manualVideoUrl',''))
+                 body.get('manualPdfUrl',''), body.get('manualVideoUrl',''), next_order)
             )
         new_id = cur.fetchone()[0]
         conn.commit()

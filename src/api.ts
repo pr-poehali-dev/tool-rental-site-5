@@ -70,6 +70,15 @@ export async function adminUpdate(entity: string, token: string, data: unknown) 
   return res.json();
 }
 
+export async function reorderItems(entity: string, token: string, order: number[]) {
+  const res = await fetch(`${ADMIN_TOOLS_URL}?entity=${entity}&action=reorder`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+    body: JSON.stringify({ order }),
+  });
+  return res.json();
+}
+
 export async function adminDelete(entity: string, token: string, id: number) {
   const res = await fetch(`${ADMIN_TOOLS_URL}?entity=${entity}&id=${id}`, {
     method: 'DELETE',

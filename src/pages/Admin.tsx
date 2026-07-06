@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import {
-  adminLogin, checkAdminToken, adminGet, adminCreate, adminUpdate, adminDelete,
+  adminLogin, checkAdminToken, adminGet, adminCreate, adminUpdate, adminDelete, reorderItems,
   getOrders, updateOrderStatus, extendOrder as extendOrderApi, getClients, getClientOrders, updateClient,
   rejectOrder as rejectOrderApi, deleteOrder as deleteOrderApi,
   addClientAddress, deleteClientAddress,
@@ -174,6 +174,12 @@ export default function Admin() {
     await adminDelete(tab === 'machines' ? 'machines' : tab, token, id);
     setDeleteId(null);
     await refreshTabData();
+  };
+
+  const handleReorder = async (newItems: Record<string, unknown>[]) => {
+    setData((prev) => ({ ...prev, [tab]: newItems }));
+    const entity = tab === 'machines' ? 'machines' : tab;
+    await reorderItems(entity, token, newItems.map((i) => i.id as number));
   };
 
   const handleOrderStatus = async (id: number, status: string) => {
@@ -365,6 +371,7 @@ export default function Admin() {
                 setField={setField}
                 deleteId={deleteId}
                 handleDelete={handleDelete}
+                handleReorder={handleReorder}
               />
             )}
 

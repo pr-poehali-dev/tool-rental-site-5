@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
@@ -24,13 +25,33 @@ interface AdminCatalogSectionProps {
   setField: (key: string, value: unknown) => void;
   deleteId: number | null;
   handleDelete: (id: number) => void;
+  handleReorder: (newItems: Record<string, unknown>[]) => void;
 }
 
 export default function AdminCatalogSection({
   tab, items, token, openEdit, openNew, setDeleteId,
   editItem, setEditItem, isNew, saving, handleSave, setField,
-  deleteId, handleDelete,
+  deleteId, handleDelete, handleReorder,
 }: AdminCatalogSectionProps) {
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
+
+  const onDragStart = (i: number) => setDragIndex(i);
+  const onDragOver = (i: number, e: React.DragEvent) => {
+    e.preventDefault();
+    if (i !== overIndex) setOverIndex(i);
+  };
+  const onDrop = (i: number) => {
+    if (dragIndex === null || dragIndex === i) { setDragIndex(null); setOverIndex(null); return; }
+    const next = [...items];
+    const [moved] = next.splice(dragIndex, 1);
+    next.splice(i, 0, moved);
+    setDragIndex(null);
+    setOverIndex(null);
+    handleReorder(next);
+  };
+  const onDragEnd = () => { setDragIndex(null); setOverIndex(null); };
+
   return (
     <>
       {/* Заголовок + кнопка добавления */}
@@ -50,6 +71,7 @@ export default function AdminCatalogSection({
           <table className="w-full font-body text-sm">
             <thead className="bg-secondary border-b border-border">
               <tr>
+                <th className="w-8 p-4" />
                 <th className="text-left p-4 text-muted-foreground font-normal">Фото</th>
                 <th className="text-left p-4 text-muted-foreground font-normal">Название</th>
                 <th className="text-left p-4 text-muted-foreground font-normal">Категория</th>
@@ -62,8 +84,19 @@ export default function AdminCatalogSection({
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
-                <tr key={item.id as number} className="border-b border-border last:border-0 hover:bg-secondary/50 transition-colors">
+              {items.map((item, i) => (
+                <tr
+                  key={item.id as number}
+                  draggable
+                  onDragStart={() => onDragStart(i)}
+                  onDragOver={(e) => onDragOver(i, e)}
+                  onDrop={() => onDrop(i)}
+                  onDragEnd={onDragEnd}
+                  className={`border-b border-border last:border-0 hover:bg-secondary/50 transition-colors ${dragIndex === i ? 'opacity-40' : ''} ${overIndex === i && dragIndex !== i ? 'border-t-2 border-t-accent' : ''}`}
+                >
+                  <td className="p-4 cursor-grab active:cursor-grabbing text-muted-foreground">
+                    <Icon name="GripVertical" size={16} />
+                  </td>
                   <td className="p-4">
                     <img src={item.image as string} alt="" className="w-12 h-12 object-cover bg-secondary"
                       onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"><rect width="48" height="48" fill="%23f0f0f0"/></svg>'; }} />
@@ -94,27 +127,42 @@ export default function AdminCatalogSection({
               ))}
             </tbody>
           </table>
+          {items.length > 1 && <div className="px-4 py-2 text-xs text-muted-foreground font-body border-t border-border">Перетащите строку за значок ⠿, чтобы изменить порядок</div>}
           {items.length === 0 && <div className="p-12 text-center text-muted-foreground font-body">Нет позиций. Нажмите «Добавить».</div>}
         </div>
       )}
 
       {/* СПЕЦТЕХНИКА */}
       {tab === 'machines' && (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map((m) => (
-            <div key={m.id as number} className="bg-background border border-border p-5">
-              <img src={m.image as string} alt="" className="w-full aspect-[4/3] object-cover bg-secondary mb-4" />
-              <div className="font-display font-semibold text-lg mb-1">{m.name as string}</div>
-              <div className="font-body text-sm text-muted-foreground mb-3">{m.subtitle as string}</div>
-              <div className="font-display font-bold text-xl mb-4">{(m.price as number).toLocaleString('ru')} ₽ / {m.priceUnit as string}</div>
-              <div className="flex gap-2">
-                <Button onClick={() => openEdit(m)} variant="outline" className="rounded-none font-body text-sm flex-1 gap-1.5"><Icon name="Pencil" size={14} />Редактировать</Button>
-                <button onClick={() => setDeleteId(m.id as number)} className="p-2 hover:bg-destructive/10 text-destructive border border-border rounded-none transition-colors"><Icon name="Trash2" size={15} /></button>
+        <>
+          {items.length > 1 && <div className="mb-3 text-xs text-muted-foreground font-body">Перетащите карточку за значок ⠿, чтобы изменить порядок</div>}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {items.map((m, i) => (
+              <div
+                key={m.id as number}
+                draggable
+                onDragStart={() => onDragStart(i)}
+                onDragOver={(e) => onDragOver(i, e)}
+                onDrop={() => onDrop(i)}
+                onDragEnd={onDragEnd}
+                className={`bg-background border border-border p-5 transition-opacity ${dragIndex === i ? 'opacity-40' : ''} ${overIndex === i && dragIndex !== i ? 'ring-2 ring-accent' : ''}`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="cursor-grab active:cursor-grabbing text-muted-foreground"><Icon name="GripVertical" size={16} /></span>
+                </div>
+                <img src={m.image as string} alt="" className="w-full aspect-[4/3] object-cover bg-secondary mb-4" />
+                <div className="font-display font-semibold text-lg mb-1">{m.name as string}</div>
+                <div className="font-body text-sm text-muted-foreground mb-3">{m.subtitle as string}</div>
+                <div className="font-display font-bold text-xl mb-4">{(m.price as number).toLocaleString('ru')} ₽ / {m.priceUnit as string}</div>
+                <div className="flex gap-2">
+                  <Button onClick={() => openEdit(m)} variant="outline" className="rounded-none font-body text-sm flex-1 gap-1.5"><Icon name="Pencil" size={14} />Редактировать</Button>
+                  <button onClick={() => setDeleteId(m.id as number)} className="p-2 hover:bg-destructive/10 text-destructive border border-border rounded-none transition-colors"><Icon name="Trash2" size={15} /></button>
+                </div>
               </div>
-            </div>
-          ))}
-          {items.length === 0 && <div className="col-span-3 p-12 text-center text-muted-foreground font-body bg-background border border-border">Нет техники. Нажмите «Добавить».</div>}
-        </div>
+            ))}
+            {items.length === 0 && <div className="col-span-3 p-12 text-center text-muted-foreground font-body bg-background border border-border">Нет техники. Нажмите «Добавить».</div>}
+          </div>
+        </>
       )}
 
       {/* МОДАЛКА РЕДАКТИРОВАНИЯ КАТАЛОГА */}

@@ -30,7 +30,7 @@ def handler(event: dict, context) -> dict:
     cur.execute("""
         SELECT id, name, category, price, image, images, stock, total_stock, specs, tool_type, material, deposit,
                manual_pdf_url, manual_video_url
-        FROM tools WHERE active = true ORDER BY category, name
+        FROM tools WHERE active = true ORDER BY sort_order, id
     """)
     tools = []
     for row in cur.fetchall():
@@ -47,7 +47,7 @@ def handler(event: dict, context) -> dict:
 
     cur.execute("""
         SELECT id, name, category, price, image, images, stock, specs, tool_type, material
-        FROM parts WHERE active = true ORDER BY category, name
+        FROM parts WHERE active = true ORDER BY sort_order, id
     """)
     parts = []
     for row in cur.fetchall():
@@ -62,7 +62,7 @@ def handler(event: dict, context) -> dict:
 
     cur.execute("""
         SELECT id, name, subtitle, image, images, specs, attachments, price, price_unit, available
-        FROM spec_machines ORDER BY id
+        FROM spec_machines ORDER BY sort_order, id
     """)
     machines = []
     for row in cur.fetchall():
