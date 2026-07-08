@@ -26,6 +26,7 @@ const DELIVERY_OPTIONS = [
 const PAYMENT_OPTIONS = [
   { id: 'cash', label: 'Наличными', desc: 'При получении', icon: 'Banknote' },
   { id: 'card', label: 'Картой при получении', desc: 'Терминал у курьера/на складе', icon: 'CreditCard' },
+  { id: 'online', label: 'Картой онлайн / СБП', desc: 'Ссылку на оплату пришлём после подтверждения заявки', icon: 'Smartphone' },
   { id: 'transfer', label: 'Перевод по счёту', desc: 'Для организаций и ИП', icon: 'Landmark' },
 ] as const;
 
@@ -43,7 +44,7 @@ export default function Checkout() {
   const [address, setAddress] = useState('');
   const [date, setDate] = useState<Date | undefined>();
   const [timeSlot, setTimeSlot] = useState(TIME_SLOTS[0]);
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer' | 'online'>('cash');
 
   // Автозаполнение и подстановка сохранённого адреса для авторизованных клиентов
   useEffect(() => {
@@ -114,7 +115,11 @@ export default function Checkout() {
             <Icon name="CheckCircle" size={36} className="text-accent" />
           </div>
           <h1 className="font-display font-bold text-2xl mb-2">Заявка оформлена!</h1>
-          <p className="font-body text-muted-foreground mb-6">Мы свяжемся с вами в ближайшее время для подтверждения.</p>
+          <p className="font-body text-muted-foreground mb-6">
+            {paymentMethod === 'online'
+              ? 'Мы свяжемся с вами для подтверждения, после чего пришлём ссылку на оплату картой или через СБП.'
+              : 'Мы свяжемся с вами в ближайшее время для подтверждения.'}
+          </p>
           <div className="space-y-2">
             {orderId && (
               <Button onClick={() => navigate(`/order/${orderId}`)} variant="outline" className="w-full rounded-none h-12 font-body">

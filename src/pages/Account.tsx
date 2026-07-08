@@ -22,6 +22,8 @@ interface AccountOrder {
   total: number;
   deliveryMethod: string;
   deliveryAddress: string;
+  paymentMethod: string;
+  paymentStatus: string;
 }
 
 interface AccountAddress {
@@ -210,11 +212,20 @@ export default function Account() {
           <div className="space-y-3">
             {data.orders.map((o) => (
               <button key={o.id} onClick={() => navigate(`/order/${o.id}`)} className="w-full text-left border border-border p-4 hover:border-foreground/30 transition-colors block">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
                   <span className="font-body text-sm text-muted-foreground">Заявка №{o.id} · {new Date(o.createdAt).toLocaleDateString('ru')}</span>
-                  <span className={`px-2 py-0.5 text-xs font-body rounded ${STATUS_COLORS[o.status] || 'bg-secondary text-muted-foreground'}`}>
-                    {STATUS_LABELS[o.status] || o.status}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {o.paymentMethod === 'online' && (
+                      o.paymentStatus === 'paid' ? (
+                        <span className="px-2 py-0.5 text-xs font-body rounded bg-green-100 text-green-700">Оплачено</span>
+                      ) : (
+                        <span className="px-2 py-0.5 text-xs font-body rounded bg-amber-100 text-amber-700">Ожидает оплаты</span>
+                      )
+                    )}
+                    <span className={`px-2 py-0.5 text-xs font-body rounded ${STATUS_COLORS[o.status] || 'bg-secondary text-muted-foreground'}`}>
+                      {STATUS_LABELS[o.status] || o.status}
+                    </span>
+                  </div>
                 </div>
                 <div className="font-body text-sm truncate mb-1">
                   {o.cart.map((i) => i.name).join(', ')}

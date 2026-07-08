@@ -173,7 +173,13 @@ export default function AdminOrdersSection({
                   {order.paymentMethod && (
                     <span className="flex items-center gap-1.5">
                       <Icon name="Wallet" size={13} />
-                      {order.paymentMethod === 'cash' ? 'Наличными' : order.paymentMethod === 'card' ? 'Картой при получении' : 'Перевод по счёту'}
+                      {order.paymentMethod === 'cash' ? 'Наличными' : order.paymentMethod === 'card' ? 'Картой при получении' : order.paymentMethod === 'online' ? 'Картой онлайн / СБП' : 'Перевод по счёту'}
+                    </span>
+                  )}
+                  {order.paymentMethod === 'online' && (
+                    <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded ${order.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                      <Icon name={order.paymentStatus === 'paid' ? 'CheckCircle' : 'Clock'} size={13} />
+                      {order.paymentStatus === 'paid' ? 'Оплачено' : 'Ожидает оплаты'}
                     </span>
                   )}
                   {order.email && (

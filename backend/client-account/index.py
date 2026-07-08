@@ -100,7 +100,7 @@ def handler(event: dict, context) -> dict:
 
         cur.execute("""
             SELECT id, name, phone, email, message, cart, status, created_at, delivery_method, delivery_address,
-                   receive_date, receive_time, payment_method
+                   receive_date, receive_time, payment_method, payment_status, payment_url
             FROM orders WHERE client_id = %s ORDER BY created_at DESC
         """, (client_id,))
         orders = []
@@ -122,6 +122,7 @@ def handler(event: dict, context) -> dict:
                 'deliveryMethod': r[8], 'deliveryAddress': r[9],
                 'receiveDate': r[10].isoformat() if r[10] else None,
                 'receiveTime': r[11], 'paymentMethod': r[12], 'total': total,
+                'paymentStatus': r[13], 'paymentUrl': r[14],
             })
 
         cur.execute(

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
-import { getPublicOrder } from '@/api';
+import { getPublicOrder, createRobokassaPayment } from '@/api';
 
 interface OrderCartItem {
   name: string;
@@ -27,6 +27,8 @@ interface PublicOrder {
   rejectReason: string;
   extensions: { days: number; amount: number }[];
   adminComment: string;
+  paymentStatus: string;
+  paymentUrl: string;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -57,6 +59,7 @@ const PAYMENT_LABELS: Record<string, string> = {
   cash: 'Наличными',
   card: 'Картой при получении',
   transfer: 'Перевод по счёту',
+  online: 'Картой онлайн / СБП',
 };
 
 export default function OrderStatus() {
@@ -65,6 +68,8 @@ export default function OrderStatus() {
   const [order, setOrder] = useState<PublicOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [payLoading, setPayLoading] = useState(false);
+  const [payError, setPayError] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -74,6 +79,19 @@ export default function OrderStatus() {
       setLoading(false);
     }).catch(() => { setNotFound(true); setLoading(false); });
   }, [id]);
+
+  const handlePay = async () => {
+    if (!order) return;
+    setPayLoading(true);
+    setPayError('');
+    const res = await createRobokassaPayment(order.id);
+    setPayLoading(false);
+    if (res.ok && res.data.paymentUrl) {
+      window.location.href = res.data.paymentUrl;
+    } else {
+      setPayError(res.data.error || 'Не удалось создать ссылку на оплату');
+    }
+  };
 
   const rentTotal = order?.cart?.reduce((sum, i) => sum + i.qty * i.days * i.price, 0) || 0;
   const depositTotal = order?.cart?.reduce((sum, i) => sum + (i.deposit || 0) * i.qty, 0) || 0;
@@ -224,6 +242,34 @@ export default function OrderStatus() {
             <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 px-4 py-3 mb-2 font-body text-sm text-blue-700">
               <Icon name="Timer" size={16} />
               Срок возврата: {new Date(order.dueAt).toLocaleString('ru')}
+            </div>
+          )}
+
+          {order.paymentMethod === 'online' && (
+            <div className="border-t border-border pt-5 mt-1">
+              {order.paymentStatus === 'paid' ? (
+                <div className="flex items-center gap-2 bg-green-50 border border-green-200 px-4 py-3 font-body text-sm text-green-700">
+                  <Icon name="CheckCircle" size={16} />
+                  Оплата получена, спасибо!
+                </div>
+              ) : order.status === 'new' ? (
+                <div className="flex items-center gap-2 bg-secondary px-4 py-3 font-body text-sm text-muted-foreground">
+                  <Icon name="Clock" size={16} />
+                  Оплата станет доступна после подтверждения заявки менеджером
+                </div>
+              ) : order.status === 'rejected' ? null : (
+                <>
+                  <Button
+                    onClick={handlePay}
+                    disabled={payLoading}
+                    className="w-full bg-accent hover:bg-accent/90 text-accent-foreground rounded-none h-12 font-body gap-2"
+                  >
+                    <Icon name="CreditCard" size={17} />
+                    {payLoading ? 'Готовим оплату...' : `Оплатить ${total.toLocaleString('ru')} ₽ картой / СБП`}
+                  </Button>
+                  {payError && <p className="font-body text-xs text-destructive mt-2 text-center">{payError}</p>}
+                </>
+              )}
             </div>
           )}
         </div>

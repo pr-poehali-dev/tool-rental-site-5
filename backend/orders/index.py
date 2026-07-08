@@ -9,7 +9,7 @@ import psycopg2
 HEADERS = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Token',
+    'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Token, X-Client-Token',
     'Content-Type': 'application/json',
 }
 
@@ -236,7 +236,8 @@ def handler(event: dict, context) -> dict:
         cur = conn.cursor()
         cur.execute("""
             SELECT id, name, cart, status, created_at, due_at, delivery_method, delivery_address,
-                   receive_date, receive_time, payment_method, reject_reason, extensions, admin_comment
+                   receive_date, receive_time, payment_method, reject_reason, extensions, admin_comment,
+                   payment_status, payment_url
             FROM orders WHERE id = %s
         """, (order_id,))
         row = cur.fetchone()
@@ -253,6 +254,7 @@ def handler(event: dict, context) -> dict:
             'receiveTime': row[9], 'paymentMethod': row[10],
             'rejectReason': row[11], 'extensions': row[12] or [],
             'adminComment': row[13],
+            'paymentStatus': row[14], 'paymentUrl': row[15],
         }
         return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps(result, ensure_ascii=False)}
 
@@ -332,7 +334,7 @@ def handler(event: dict, context) -> dict:
         cur.execute("""
             SELECT id, name, phone, message, cart, status, created_at, due_at, archived, extensions,
                    delivery_method, delivery_address, receive_date, receive_time, payment_method, email,
-                   reject_reason, admin_comment
+                   reject_reason, admin_comment, payment_status, payment_url
             FROM orders WHERE archived = %s ORDER BY created_at DESC LIMIT 200
         """, (show_archived,))
         rows = cur.fetchall()
@@ -344,7 +346,8 @@ def handler(event: dict, context) -> dict:
              'deliveryMethod': r[10], 'deliveryAddress': r[11],
              'receiveDate': r[12].isoformat() if r[12] else None,
              'receiveTime': r[13], 'paymentMethod': r[14], 'email': r[15],
-             'rejectReason': r[16], 'adminComment': r[17]}
+             'rejectReason': r[16], 'adminComment': r[17],
+             'paymentStatus': r[18], 'paymentUrl': r[19]}
             for r in rows
         ]
         cur.close()
