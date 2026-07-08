@@ -1,0 +1,1 @@
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS deposit_refund_error TEXT NOT NULL DEFAULT '';
