@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
+import { uploadEvidence, DepositResolutionItem } from '@/api';
 
 const STATUS_SWITCH: string[] = ['new', 'processing', 'done'];
-const STATUS_LABELS: Record<string, string> = { new: 'Новая', processing: 'В работе', done: 'Выполнена', returned: 'Возвращена', rejected: 'Отклонена' };
+const STATUS_LABELS: Record<string, string> = { new: 'Новая', processing: 'В работе', done: 'Выполнена', returned: 'Завершена', rejected: 'Отклонена' };
 const STATUS_COLORS: Record<string, string> = { new: 'bg-blue-100 text-blue-700', processing: 'bg-amber-100 text-amber-700', done: 'bg-green-100 text-green-700', returned: 'bg-gray-200 text-gray-600', rejected: 'bg-red-100 text-red-700' };
 
 function OrderCountdown({ dueAt }: { dueAt: string }) {
@@ -61,6 +62,20 @@ interface AdminOrdersSectionProps {
   setProcessingComment: (v: string) => void;
   processingSaving: boolean;
   handleProcessingSave: () => void;
+  token: string;
+  openDepositFull: (order: Record<string, unknown>) => void;
+  openDepositPartial: (order: Record<string, unknown>) => void;
+  depositOrderItem: Record<string, unknown> | null;
+  setDepositOrderItem: (item: Record<string, unknown> | null) => void;
+  depositMode: 'full' | 'partial';
+  depositResolution: DepositResolutionItem[];
+  setDepositResolution: (v: DepositResolutionItem[]) => void;
+  depositSaving: boolean;
+  handleDepositSave: () => void;
+  confirmRefundOrderId: number | null;
+  setConfirmRefundOrderId: (id: number | null) => void;
+  confirmRefundSaving: boolean;
+  handleConfirmRefund: (id: number) => void;
 }
 
 export default function AdminOrdersSection({
@@ -71,7 +86,29 @@ export default function AdminOrdersSection({
   rejectSaving, handleRejectSave, deleteOrderId, setDeleteOrderId, handleDeleteOrder,
   openProcessing, processingOrderItem, setProcessingOrderItem, processingComment,
   setProcessingComment, processingSaving, handleProcessingSave,
+  token, openDepositFull, openDepositPartial, depositOrderItem, setDepositOrderItem,
+  depositMode, depositResolution, setDepositResolution, depositSaving, handleDepositSave,
+  confirmRefundOrderId, setConfirmRefundOrderId, confirmRefundSaving, handleConfirmRefund,
 }: AdminOrdersSectionProps) {
+  const [evidenceUploading, setEvidenceUploading] = useState<number | null>(null);
+
+  const handleEvidenceUpload = async (idx: number, files: FileList | null) => {
+    if (!files || !files.length) return;
+    setEvidenceUploading(idx);
+    const uploaded: string[] = [];
+    for (const file of Array.from(files)) {
+      try {
+        const url = await uploadEvidence(token, file);
+        uploaded.push(url);
+      } catch { /* ignore single file failure */ }
+    }
+    setEvidenceUploading(null);
+    if (uploaded.length) {
+      const next = [...depositResolution];
+      next[idx] = { ...next[idx], evidence: [...(next[idx].evidence || []), ...uploaded] };
+      setDepositResolution(next);
+    }
+  };
   return (
     <>
       <div className="flex items-center justify-between mb-6">
@@ -120,8 +157,14 @@ export default function AdminOrdersSection({
                     ))}
                     {status === 'done' && (
                       <>
-                        <button onClick={() => handleOrderStatus(order.id as number, 'returned')}
-                          className="font-body text-xs px-3 py-1.5 border border-border text-muted-foreground hover:border-green-600 hover:text-green-700 transition-colors flex items-center gap-1.5">Завершено</button>
+                        <button onClick={() => openDepositFull(order)}
+                          className="font-body text-xs px-3 py-1.5 border border-border text-muted-foreground hover:border-green-600 hover:text-green-700 transition-colors flex items-center gap-1.5">
+                          <Icon name="ShieldCheck" size={13} /> Завершено с возвратом залога
+                        </button>
+                        <button onClick={() => openDepositPartial(order)}
+                          className="font-body text-xs px-3 py-1.5 border border-border text-muted-foreground hover:border-amber-600 hover:text-amber-700 transition-colors flex items-center gap-1.5">
+                          <Icon name="ShieldAlert" size={13} /> Завершено без возврата / с частичным возвратом залога
+                        </button>
                         <button onClick={() => openExtend(order)}
                           className="font-body text-xs px-3 py-1.5 border border-border text-muted-foreground hover:border-accent hover:text-accent transition-colors flex items-center gap-1.5">
                           <Icon name="CalendarPlus" size={13} /> Продлил
@@ -216,6 +259,44 @@ export default function AdminOrdersSection({
                   </div>
                 </div>
               )}
+              {status === 'returned' && (order.depositResolution as DepositResolutionItem[] | undefined)?.length ? (
+                <div className="mt-3 pt-3 border-t border-border">
+                  <div className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-2">Решение по залогу</div>
+                  <div className="space-y-1.5 mb-2">
+                    {(order.depositResolution as DepositResolutionItem[]).map((r, i) => (
+                      <div key={i} className="font-body text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1.5">
+                            <Icon name={r.refunded ? 'CheckCircle' : 'XCircle'} size={13} className={r.refunded ? 'text-green-600' : 'text-red-500'} />
+                            {r.name}
+                          </span>
+                          <span className={r.refunded ? 'text-green-700' : 'text-red-600'}>{r.refunded ? '+' : '−'}{r.amount.toLocaleString('ru')} ₽</span>
+                        </div>
+                        {!r.refunded && r.reason && <p className="text-xs text-muted-foreground pl-5">{r.reason}</p>}
+                        {!r.refunded && !!r.evidence?.length && (
+                          <div className="flex gap-1.5 pl-5 mt-1 flex-wrap">
+                            {r.evidence.map((url, j) => (
+                              url.match(/\.(mp4|mov|webm)$/i)
+                                ? <video key={j} src={url} controls className="w-16 h-16 object-cover bg-secondary" />
+                                : <img key={j} src={url} alt="" className="w-16 h-16 object-cover bg-secondary" />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {(order.paymentMethod === 'online') && (order.depositRefundAmount as number) > 0 && (
+                    order.depositRefundStatus === 'refunded' ? (
+                      <div className="flex items-center gap-1.5 font-body text-xs text-green-700"><Icon name="CheckCircle" size={13} /> Возврат {(order.depositRefundAmount as number).toLocaleString('ru')} ₽ выполнен</div>
+                    ) : order.depositRefundStatus === 'pending' ? (
+                      <button onClick={() => setConfirmRefundOrderId(order.id as number)}
+                        className="font-body text-xs px-3 py-1.5 border border-amber-400 text-amber-700 hover:bg-amber-50 transition-colors flex items-center gap-1.5">
+                        <Icon name="Banknote" size={13} /> Подтвердить возврат {(order.depositRefundAmount as number).toLocaleString('ru')} ₽ клиенту
+                      </button>
+                    ) : null
+                  )}
+                </div>
+              ) : null}
             </div>
           );
         })}
@@ -322,6 +403,150 @@ export default function AdminOrdersSection({
             <div className="flex gap-3">
               <Button onClick={() => handleDeleteOrder(deleteOrderId)} className="flex-1 bg-destructive hover:bg-destructive/90 text-white rounded-none font-body">Удалить</Button>
               <Button variant="outline" onClick={() => setDeleteOrderId(null)} className="flex-1 rounded-none font-body">Отмена</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* МОДАЛКА ЗАВЕРШЕНИЯ С РЕШЕНИЕМ ПО ЗАЛОГУ */}
+      {depositOrderItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-background border border-border w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <h3 className="font-display font-bold text-xl">
+                {depositMode === 'full' ? 'Завершение с возвратом залога' : 'Завершение без возврата / с частичным возвратом залога'}
+              </h3>
+              <button onClick={() => setDepositOrderItem(null)} className="text-muted-foreground hover:text-foreground"><Icon name="X" size={20} /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="font-body text-sm text-muted-foreground">{depositOrderItem.name as string} — {depositOrderItem.phone as string}</p>
+
+              {depositResolution.length === 0 && (
+                <p className="font-body text-sm text-muted-foreground">По этой заявке залог не взимался.</p>
+              )}
+
+              {depositMode === 'full' ? (
+                <div className="space-y-2">
+                  {depositResolution.map((r) => (
+                    <div key={r.toolId} className="flex items-center justify-between border border-border px-3 py-2">
+                      <span className="font-body text-sm">{r.name}</span>
+                      <span className="font-body text-sm font-semibold text-green-700">{r.amount.toLocaleString('ru')} ₽</span>
+                    </div>
+                  ))}
+                  {depositResolution.length > 0 && (
+                    <div className="flex items-center justify-between pt-2 border-t border-border">
+                      <span className="font-body font-medium">Итого к возврату</span>
+                      <span className="font-display font-bold text-xl">{depositResolution.reduce((s, r) => s + r.amount, 0).toLocaleString('ru')} ₽</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {depositResolution.map((r, i) => (
+                    <div key={r.toolId} className="border border-border p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-body text-sm font-medium">{r.name}</span>
+                        <span className="font-body text-xs text-muted-foreground">Залог: {r.amount.toLocaleString('ru')} ₽</span>
+                      </div>
+                      <div className="flex gap-1 bg-secondary p-1 w-fit">
+                        <button
+                          onClick={() => { const next = [...depositResolution]; next[i] = { ...next[i], refunded: true, reason: '', evidence: [] }; setDepositResolution(next); }}
+                          className={`font-body text-xs px-3 py-1.5 transition-colors ${r.refunded ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
+                        >
+                          Вернуть
+                        </button>
+                        <button
+                          onClick={() => { const next = [...depositResolution]; next[i] = { ...next[i], refunded: false }; setDepositResolution(next); }}
+                          className={`font-body text-xs px-3 py-1.5 transition-colors ${!r.refunded ? 'bg-destructive text-white' : 'text-muted-foreground hover:text-foreground'}`}
+                        >
+                          Не возвращать
+                        </button>
+                      </div>
+                      {!r.refunded && (
+                        <div className="space-y-2 pt-1">
+                          <textarea
+                            value={r.reason || ''}
+                            onChange={(e) => { const next = [...depositResolution]; next[i] = { ...next[i], reason: e.target.value }; setDepositResolution(next); }}
+                            placeholder="Комментарий: причина невозврата залога..."
+                            rows={2}
+                            className="w-full rounded-none border border-input bg-background px-3 py-2 font-body text-sm resize-none"
+                          />
+                          <div>
+                            <input
+                              type="file"
+                              accept="image/*,video/*"
+                              multiple
+                              id={`evidence-${i}`}
+                              className="hidden"
+                              onChange={(e) => handleEvidenceUpload(i, e.target.files)}
+                            />
+                            <label htmlFor={`evidence-${i}`} className="inline-flex items-center gap-1.5 font-body text-xs px-3 py-1.5 border border-border text-muted-foreground hover:border-foreground hover:text-foreground cursor-pointer transition-colors">
+                              {evidenceUploading === i ? (
+                                <><div className="animate-spin w-3 h-3 border-2 border-accent border-t-transparent rounded-full" /> Загружаем...</>
+                              ) : (
+                                <><Icon name="Upload" size={13} /> Приложить фото/видео доказательство</>
+                              )}
+                            </label>
+                            {!!r.evidence?.length && (
+                              <div className="flex gap-1.5 mt-2 flex-wrap">
+                                {r.evidence.map((url, j) => (
+                                  url.match(/\.(mp4|mov|webm)$/i)
+                                    ? <video key={j} src={url} controls className="w-16 h-16 object-cover bg-secondary" />
+                                    : <img key={j} src={url} alt="" className="w-16 h-16 object-cover bg-secondary" />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {depositResolution.length > 0 && (
+                    <div className="flex items-center justify-between pt-2 border-t border-border">
+                      <span className="font-body font-medium">Итого к возврату</span>
+                      <span className="font-display font-bold text-xl">{depositResolution.filter((r) => r.refunded).reduce((s, r) => s + r.amount, 0).toLocaleString('ru')} ₽</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {(depositOrderItem.paymentMethod === 'online') && depositResolution.some((r) => r.refunded) && (
+                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 px-3 py-2">
+                  <Icon name="Info" size={14} className="text-amber-600 mt-0.5 shrink-0" />
+                  <p className="font-body text-xs text-amber-700">
+                    Оплата была онлайн через Robokassa. После сохранения проведите возврат вручную в личном кабинете Robokassa,
+                    затем подтвердите это в системе кнопкой «Подтвердить возврат» — клиенту придёт уведомление.
+                  </p>
+                </div>
+              )}
+
+              {!(depositOrderItem.paymentMethod === 'online') && depositResolution.some((r) => r.refunded) && (
+                <p className="font-body text-xs text-muted-foreground">Оплата была не онлайн — верните залог клиенту наличными или переводом самостоятельно.</p>
+              )}
+            </div>
+            <div className="p-6 border-t border-border flex gap-3">
+              <Button onClick={handleDepositSave} disabled={depositSaving} className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground rounded-none font-body">
+                {depositSaving ? 'Сохраняем...' : 'Завершить заявку'}
+              </Button>
+              <Button variant="outline" onClick={() => setDepositOrderItem(null)} className="rounded-none font-body">Отмена</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ПОДТВЕРЖДЕНИЕ ФАКТИЧЕСКОГО ВОЗВРАТА СРЕДСТВ */}
+      {confirmRefundOrderId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-background border border-border p-6 w-full max-w-sm">
+            <h3 className="font-display font-bold text-xl mb-2">Подтвердить возврат средств?</h3>
+            <p className="font-body text-sm text-muted-foreground mb-6">
+              Убедитесь, что вы уже провели возврат в личном кабинете Robokassa. После подтверждения клиенту придёт уведомление о возврате.
+            </p>
+            <div className="flex gap-3">
+              <Button onClick={() => handleConfirmRefund(confirmRefundOrderId)} disabled={confirmRefundSaving} className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground rounded-none font-body">
+                {confirmRefundSaving ? 'Сохраняем...' : 'Да, возврат выполнен'}
+              </Button>
+              <Button variant="outline" onClick={() => setConfirmRefundOrderId(null)} className="flex-1 rounded-none font-body">Отмена</Button>
             </div>
           </div>
         </div>

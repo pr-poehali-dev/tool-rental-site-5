@@ -109,6 +109,41 @@ def upload_pdf(body: dict) -> dict:
     except Exception as e:
         return {'error': f'Не удалось сохранить файл в хранилище: {e}'}
 
+MAX_EVIDENCE_SIZE = 8 * 1024 * 1024  # 8 МБ — с запасом под лимит размера запроса облачной функции
+
+
+def upload_evidence(body: dict) -> dict:
+    """Загружает фото/видео-доказательство удержания залога в S3 из base64, возвращает {url}."""
+    data = body.get('data', '')
+    filename = body.get('filename', 'evidence.jpg')
+    ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'jpg'
+    allowed = {
+        'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'webp': 'image/webp',
+        'gif': 'image/gif', 'mp4': 'video/mp4', 'mov': 'video/quicktime', 'webm': 'video/webm',
+    }
+    if ext not in allowed:
+        return {'error': 'Разрешены только фото (jpg, png, webp, gif) или видео (mp4, mov, webm)'}
+    if ',' in data:
+        data = data.split(',', 1)[1]
+    try:
+        file_bytes = base64.b64decode(data)
+    except Exception:
+        return {'error': 'Не удалось прочитать файл. Попробуйте выбрать файл заново'}
+
+    if not file_bytes:
+        return {'error': 'Нет данных'}
+    if len(file_bytes) > MAX_EVIDENCE_SIZE:
+        return {'error': f'Файл слишком большой (макс. {MAX_EVIDENCE_SIZE // (1024 * 1024)} МБ)'}
+
+    try:
+        key = f"deposit-evidence/{uuid.uuid4().hex}.{ext}"
+        get_s3().put_object(Bucket='files', Key=key, Body=file_bytes, ContentType=allowed[ext])
+        cdn_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+        return {'url': cdn_url}
+    except Exception as e:
+        return {'error': f'Не удалось сохранить файл в хранилище: {e}'}
+
+
 def handler(event: dict, context) -> dict:
     """CRUD + загрузка фото и PDF-инструкций для инструментов, комплектующих и спецтехники. Требует X-Admin-Token."""
     if event.get('httpMethod') == 'OPTIONS':
@@ -145,6 +180,18 @@ def handler(event: dict, context) -> dict:
         except Exception:
             return {'statusCode': 400, 'headers': HEADERS, 'body': json.dumps({'error': f'Файл слишком большой (макс. {MAX_PDF_SIZE // (1024 * 1024)} МБ) или повреждён'})}
         result = upload_pdf(body)
+        if 'error' in result:
+            return {'statusCode': 400, 'headers': HEADERS, 'body': json.dumps(result)}
+        return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps(result)}
+
+    # Загрузка фото/видео-доказательства удержания залога — отдельный маршрут
+    if action == 'upload_evidence' and method == 'POST':
+        conn.close()
+        try:
+            body = json.loads(event.get('body') or '{}')
+        except Exception:
+            return {'statusCode': 400, 'headers': HEADERS, 'body': json.dumps({'error': f'Файл слишком большой (макс. {MAX_EVIDENCE_SIZE // (1024 * 1024)} МБ) или повреждён'})}
+        result = upload_evidence(body)
         if 'error' in result:
             return {'statusCode': 400, 'headers': HEADERS, 'body': json.dumps(result)}
         return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps(result)}

@@ -165,6 +165,29 @@ def notify_status_change(phone, email, order_id, name, status, cart, reject_reas
     send_email(email, f"Строй_Rent — заявка №{order_id}: {STATUS_LABELS.get(status, status)}", text)
 
 
+def notify_deposit_resolution(phone, email, order_id, name, refund_amount, resolution, refund_status):
+    """Уведомляет клиента о решении по возврату залога."""
+    lines = [f"Строй_Rent: заявка №{order_id} — аренда завершена."]
+    if refund_amount > 0:
+        lines.append(f"Сумма к возврату залога: {refund_amount} ₽")
+    withheld = [r for r in (resolution or []) if not r.get('refunded')]
+    if withheld:
+        lines.append('Залог удержан по позициям:')
+        for r in withheld:
+            lines.append(f"— {r.get('name', '')}: {r.get('amount', 0)} ₽ — {r.get('reason', '')}")
+    if refund_status == 'pending':
+        lines.append('Возврат средств будет произведён в ближайшее время на карту/счёт, с которого была оплата.')
+    elif refund_status == 'refunded':
+        lines.append('Средства уже возвращены на карту/счёт, с которого была оплата.')
+    lines.append('Спасибо, что пользуетесь нашим сервисом!')
+    lines.append('Наши контакты для связи:')
+    lines.append('тел: 8 (901) 504-64-44')
+    lines.append('e-mail: stroy_rent@list.ru')
+    text = '\n'.join(lines)
+    send_sms(phone, text)
+    send_email(email, f"Строй_Rent — заявка №{order_id}: возврат залога", text)
+
+
 def notify_admin_new_order(order_id, name, phone, email, cart, message, delivery_method, delivery_address, receive_date, receive_time, payment_method):
     """Уведомляет администратора на почту о новом заказе с сайта."""
     site_url = os.environ.get('SITE_URL', '').rstrip('/')
@@ -237,7 +260,7 @@ def handler(event: dict, context) -> dict:
         cur.execute("""
             SELECT id, name, cart, status, created_at, due_at, delivery_method, delivery_address,
                    receive_date, receive_time, payment_method, reject_reason, extensions, admin_comment,
-                   payment_status, payment_url
+                   payment_status, payment_url, deposit_refund_amount, deposit_resolution, deposit_refund_status
             FROM orders WHERE id = %s
         """, (order_id,))
         row = cur.fetchone()
@@ -255,6 +278,8 @@ def handler(event: dict, context) -> dict:
             'rejectReason': row[11], 'extensions': row[12] or [],
             'adminComment': row[13],
             'paymentStatus': row[14], 'paymentUrl': row[15],
+            'depositRefundAmount': row[16], 'depositResolution': row[17] or [],
+            'depositRefundStatus': row[18],
         }
         return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps(result, ensure_ascii=False)}
 
@@ -334,7 +359,8 @@ def handler(event: dict, context) -> dict:
         cur.execute("""
             SELECT id, name, phone, message, cart, status, created_at, due_at, archived, extensions,
                    delivery_method, delivery_address, receive_date, receive_time, payment_method, email,
-                   reject_reason, admin_comment, payment_status, payment_url
+                   reject_reason, admin_comment, payment_status, payment_url,
+                   deposit_refund_amount, deposit_resolution, deposit_refund_status
             FROM orders WHERE archived = %s ORDER BY created_at DESC LIMIT 200
         """, (show_archived,))
         rows = cur.fetchall()
@@ -347,7 +373,9 @@ def handler(event: dict, context) -> dict:
              'receiveDate': r[12].isoformat() if r[12] else None,
              'receiveTime': r[13], 'paymentMethod': r[14], 'email': r[15],
              'rejectReason': r[16], 'adminComment': r[17],
-             'paymentStatus': r[18], 'paymentUrl': r[19]}
+             'paymentStatus': r[18], 'paymentUrl': r[19],
+             'depositRefundAmount': r[20], 'depositResolution': r[21] or [],
+             'depositRefundStatus': r[22]}
             for r in rows
         ]
         cur.close()
@@ -400,6 +428,56 @@ def handler(event: dict, context) -> dict:
             conn.commit()
             cur.close(); conn.close()
             notify_status_change(phone, email, order_id, name, 'rejected', cart, reason)
+            return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps({'ok': True})}
+
+        if action == 'resolve_deposit':
+            # Завершение аренды с решением по возврату залога (полный/частичный/без возврата)
+            refund_amount = int(body.get('refundAmount', 0) or 0)
+            resolution = body.get('resolution', [])  # [{toolId, name, amount, refunded, reason, evidence: []}]
+
+            cur.execute("SELECT cart, status, phone, email, name, payment_method, payment_status FROM orders WHERE id = %s", (order_id,))
+            row = cur.fetchone()
+            if not row:
+                cur.close(); conn.close()
+                return {'statusCode': 404, 'headers': HEADERS, 'body': json.dumps({'error': 'Заявка не найдена'})}
+            cart, prev_status, phone, email, name, payment_method, payment_status = row
+
+            if prev_status == 'done':
+                adjust_stock(cur, cart, +1)
+
+            # Если оплата была онлайн и есть что возвращать — ставим статус "ожидает возврата",
+            # т.к. Robokassa для обычного магазина не выдаёт автоматический возврат: администратор
+            # проводит возврат вручную в личном кабинете Robokassa и подтверждает это в системе.
+            refund_status = 'pending' if (payment_method == 'online' and payment_status == 'paid' and refund_amount > 0) else 'none'
+
+            cur.execute(
+                """UPDATE orders SET status='returned', archived=true,
+                   deposit_refund_amount=%s, deposit_resolution=%s, deposit_refund_status=%s
+                   WHERE id=%s""",
+                (refund_amount, json.dumps(resolution, ensure_ascii=False), refund_status, order_id)
+            )
+            conn.commit()
+            cur.close(); conn.close()
+            notify_deposit_resolution(phone, email, order_id, name, refund_amount, resolution, refund_status)
+            return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps({'ok': True, 'refundStatus': refund_status})}
+
+        if action == 'confirm_deposit_refund':
+            # Администратор подтверждает, что провёл возврат денег в личном кабинете Robokassa вручную
+            cur.execute("SELECT phone, email, name, deposit_refund_amount FROM orders WHERE id = %s", (order_id,))
+            row = cur.fetchone()
+            if not row:
+                cur.close(); conn.close()
+                return {'statusCode': 404, 'headers': HEADERS, 'body': json.dumps({'error': 'Заявка не найдена'})}
+            phone, email, name, refund_amount = row
+            cur.execute(
+                "UPDATE orders SET deposit_refund_status='refunded', deposit_refunded_at=NOW() WHERE id=%s",
+                (order_id,)
+            )
+            conn.commit()
+            cur.close(); conn.close()
+            text = f"Строй_Rent: возврат залога {refund_amount} ₽ по заявке №{order_id} выполнен. Спасибо!"
+            send_sms(phone, text)
+            send_email(email, f"Строй_Rent — заявка №{order_id}: залог возвращён", text)
             return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps({'ok': True})}
 
         status = body.get('status', 'new')

@@ -6,6 +6,7 @@ import {
   getOrders, updateOrderStatus, extendOrder as extendOrderApi, getClients, getClientOrders, updateClient,
   rejectOrder as rejectOrderApi, deleteOrder as deleteOrderApi,
   addClientAddress, deleteClientAddress,
+  resolveDeposit, confirmDepositRefund, DepositResolutionItem,
 } from '@/api';
 import AdminLoginScreen from '@/components/admin/AdminLoginScreen';
 import AdminCatalogSection from '@/components/admin/AdminCatalogSection';
@@ -86,6 +87,14 @@ export default function Admin() {
   const [processingOrderItem, setProcessingOrderItem] = useState<Record<string, unknown> | null>(null);
   const [processingComment, setProcessingComment] = useState('');
   const [processingSaving, setProcessingSaving] = useState(false);
+
+  // Заявки — завершение с решением по залогу (полный возврат / частичный / без возврата)
+  const [depositOrderItem, setDepositOrderItem] = useState<Record<string, unknown> | null>(null);
+  const [depositMode, setDepositMode] = useState<'full' | 'partial'>('full');
+  const [depositResolution, setDepositResolution] = useState<DepositResolutionItem[]>([]);
+  const [depositSaving, setDepositSaving] = useState(false);
+  const [confirmRefundOrderId, setConfirmRefundOrderId] = useState<number | null>(null);
+  const [confirmRefundSaving, setConfirmRefundSaving] = useState(false);
 
   // Каталог — редактирование
   const [editItem, setEditItem] = useState<Record<string, unknown> | null>(null);
@@ -239,6 +248,44 @@ export default function Admin() {
   const handleDeleteOrder = async (id: number) => {
     await deleteOrderApi(token, id);
     setDeleteOrderId(null);
+    const updated = await getOrders(token, showArchived);
+    setData((prev) => ({ ...prev, orders: Array.isArray(updated) ? updated : [] }));
+  };
+
+  const openDepositFull = (order: Record<string, unknown>) => {
+    const cart = (order.cart as { id: number; name: string; qty: number; deposit?: number }[]) || [];
+    setDepositMode('full');
+    setDepositResolution(cart.filter((i) => (i.deposit || 0) > 0).map((i) => ({
+      toolId: i.id, name: i.name, amount: (i.deposit || 0) * i.qty, refunded: true, reason: '', evidence: [],
+    })));
+    setDepositOrderItem(order);
+  };
+
+  const openDepositPartial = (order: Record<string, unknown>) => {
+    const cart = (order.cart as { id: number; name: string; qty: number; deposit?: number }[]) || [];
+    setDepositMode('partial');
+    setDepositResolution(cart.filter((i) => (i.deposit || 0) > 0).map((i) => ({
+      toolId: i.id, name: i.name, amount: (i.deposit || 0) * i.qty, refunded: true, reason: '', evidence: [],
+    })));
+    setDepositOrderItem(order);
+  };
+
+  const handleDepositSave = async () => {
+    if (!depositOrderItem) return;
+    setDepositSaving(true);
+    const refundAmount = depositResolution.filter((r) => r.refunded).reduce((s, r) => s + r.amount, 0);
+    await resolveDeposit(token, depositOrderItem.id as number, refundAmount, depositResolution);
+    setDepositSaving(false);
+    setDepositOrderItem(null);
+    const updated = await getOrders(token, showArchived);
+    setData((prev) => ({ ...prev, orders: Array.isArray(updated) ? updated : [] }));
+  };
+
+  const handleConfirmRefund = async (id: number) => {
+    setConfirmRefundSaving(true);
+    await confirmDepositRefund(token, id);
+    setConfirmRefundSaving(false);
+    setConfirmRefundOrderId(null);
     const updated = await getOrders(token, showArchived);
     setData((prev) => ({ ...prev, orders: Array.isArray(updated) ? updated : [] }));
   };
@@ -407,6 +454,20 @@ export default function Admin() {
                 setProcessingComment={setProcessingComment}
                 processingSaving={processingSaving}
                 handleProcessingSave={handleProcessingSave}
+                token={token}
+                openDepositFull={openDepositFull}
+                openDepositPartial={openDepositPartial}
+                depositOrderItem={depositOrderItem}
+                setDepositOrderItem={setDepositOrderItem}
+                depositMode={depositMode}
+                depositResolution={depositResolution}
+                setDepositResolution={setDepositResolution}
+                depositSaving={depositSaving}
+                handleDepositSave={handleDepositSave}
+                confirmRefundOrderId={confirmRefundOrderId}
+                setConfirmRefundOrderId={setConfirmRefundOrderId}
+                confirmRefundSaving={confirmRefundSaving}
+                handleConfirmRefund={handleConfirmRefund}
               />
             )}
 

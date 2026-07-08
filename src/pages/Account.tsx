@@ -42,7 +42,7 @@ interface AccountData {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  new: 'Новая', processing: 'В работе', done: 'Выполнена', returned: 'Возвращена', rejected: 'Отклонена',
+  new: 'Новая', processing: 'В работе', done: 'Выполнена', returned: 'Завершена', rejected: 'Отклонена',
 };
 const STATUS_COLORS: Record<string, string> = {
   new: 'bg-blue-100 text-blue-700', processing: 'bg-amber-100 text-amber-700',

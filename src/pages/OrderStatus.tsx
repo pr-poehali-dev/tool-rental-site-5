@@ -29,13 +29,16 @@ interface PublicOrder {
   adminComment: string;
   paymentStatus: string;
   paymentUrl: string;
+  depositRefundAmount: number;
+  depositResolution: { toolId: number; name: string; amount: number; refunded: boolean; reason?: string; evidence?: string[] }[];
+  depositRefundStatus: string;
 }
 
 const STATUS_LABELS: Record<string, string> = {
   new: 'Новая',
   processing: 'В работе',
   done: 'Выполнена',
-  returned: 'Возвращена',
+  returned: 'Завершена',
   rejected: 'Отклонена',
 };
 
@@ -245,7 +248,47 @@ export default function OrderStatus() {
             </div>
           )}
 
-          {order.paymentMethod === 'online' && (
+          {order.status === 'returned' && order.depositResolution?.length > 0 && (
+            <div className="border-t border-border pt-5 mb-2">
+              <div className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-3">Решение по залогу</div>
+              <div className="space-y-2 mb-3">
+                {order.depositResolution.map((r, i) => (
+                  <div key={i} className="font-body text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Icon name={r.refunded ? 'CheckCircle' : 'XCircle'} size={14} className={r.refunded ? 'text-green-600' : 'text-red-500'} />
+                        {r.name}
+                      </span>
+                      <span className={r.refunded ? 'text-green-700' : 'text-red-600'}>{r.refunded ? '+' : '−'}{r.amount.toLocaleString('ru')} ₽</span>
+                    </div>
+                    {!r.refunded && r.reason && <p className="text-xs text-muted-foreground pl-5 mt-0.5">{r.reason}</p>}
+                    {!r.refunded && !!r.evidence?.length && (
+                      <div className="flex gap-1.5 pl-5 mt-1.5 flex-wrap">
+                        {r.evidence.map((url, j) => (
+                          url.match(/\.(mp4|mov|webm)$/i)
+                            ? <video key={j} src={url} controls className="w-16 h-16 object-cover bg-secondary" />
+                            : <img key={j} src={url} alt="" className="w-16 h-16 object-cover bg-secondary" />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {order.depositRefundAmount > 0 && (
+                order.depositRefundStatus === 'refunded' ? (
+                  <div className="flex items-center gap-2 bg-green-50 border border-green-200 px-4 py-3 font-body text-sm text-green-700">
+                    <Icon name="CheckCircle" size={16} /> Возврат {order.depositRefundAmount.toLocaleString('ru')} ₽ выполнен
+                  </div>
+                ) : order.depositRefundStatus === 'pending' ? (
+                  <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 px-4 py-3 font-body text-sm text-amber-700">
+                    <Icon name="Clock" size={16} /> Возврат {order.depositRefundAmount.toLocaleString('ru')} ₽ будет зачислен на карту/счёт оплаты в ближайшее время
+                  </div>
+                ) : null
+              )}
+            </div>
+          )}
+
+          {order.paymentMethod === 'online' && order.status !== 'returned' && (
             <div className="border-t border-border pt-5 mt-1">
               {order.paymentStatus === 'paid' ? (
                 <div className="flex items-center gap-2 bg-green-50 border border-green-200 px-4 py-3 font-body text-sm text-green-700">

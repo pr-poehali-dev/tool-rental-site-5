@@ -1,0 +1,2 @@
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS deposit_refund_reason TEXT NOT NULL DEFAULT '';
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS deposit_refund_evidence TEXT[] NOT NULL DEFAULT '{}';

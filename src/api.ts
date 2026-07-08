@@ -122,6 +122,53 @@ export async function rejectOrder(token: string, id: number, reason: string) {
   return res.json();
 }
 
+export interface DepositResolutionItem {
+  toolId: number;
+  name: string;
+  amount: number;
+  refunded: boolean;
+  reason?: string;
+  evidence?: string[];
+}
+
+export async function resolveDeposit(token: string, id: number, refundAmount: number, resolution: DepositResolutionItem[]) {
+  const res = await fetch(ORDERS_URL, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+    body: JSON.stringify({ id, action: 'resolve_deposit', refundAmount, resolution }),
+  });
+  return res.json();
+}
+
+export async function confirmDepositRefund(token: string, id: number) {
+  const res = await fetch(ORDERS_URL, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+    body: JSON.stringify({ id, action: 'confirm_deposit_refund' }),
+  });
+  return res.json();
+}
+
+export async function uploadEvidence(token: string, file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const res = await fetch(`${ADMIN_TOOLS_URL}?action=upload_evidence`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+          body: JSON.stringify({ data: reader.result as string, filename: file.name }),
+        });
+        const data = await res.json();
+        if (data.url) resolve(data.url);
+        else reject(new Error(data.error || 'Ошибка загрузки'));
+      } catch (e) { reject(e); }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export async function deleteOrder(token: string, id: number) {
   const res = await fetch(`${ORDERS_URL}?id=${id}`, {
     method: 'DELETE',
