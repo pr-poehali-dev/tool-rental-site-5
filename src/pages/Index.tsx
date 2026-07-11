@@ -231,9 +231,7 @@ export default function Index() {
             <h1 className="font-display font-bold leading-[0.95] text-6xl md:text-8xl tracking-tight mb-8">
               ИНСТРУМЕНТ<br /><span className="text-accent">В АРЕНДУ</span>
             </h1>
-            <p className="font-body text-lg md:text-xl text-muted-foreground max-w-xl mb-10">
-              Профессиональное строительное оборудование для любых задач. Честные цены, быстрое бронирование, доставка по городу.
-            </p>
+            <p className="font-body text-lg md:text-xl text-muted-foreground max-w-xl mb-10">Профессиональное строительное оборудование для любых задач. Честные цены, быстрое бронирование, доставка по Москве и Московской области.</p>
             <div className="flex flex-wrap gap-4">
               <Button size="lg" onClick={() => scrollTo('catalog')} className="bg-accent hover:bg-accent/90 text-accent-foreground font-body rounded-none h-14 px-8 text-base">
                 Смотреть каталог <Icon name="ArrowRight" size={18} className="ml-2" />
