@@ -14,6 +14,8 @@ interface CartItem {
   tool: { id: number; name: string; price: number; image: string; stock: number; deposit?: number };
   days: number;
   qty: number;
+  kitDiscount?: number;
+  kitName?: string;
 }
 
 const TIME_SLOTS = ['09:00 – 12:00', '12:00 – 15:00', '15:00 – 18:00', '18:00 – 21:00'];
@@ -78,7 +80,8 @@ export default function Checkout() {
     navigate('/');
   }, [navigate]);
 
-  const rentTotal = cart.reduce((sum, i) => sum + i.tool.price * i.days * i.qty, 0);
+  const itemPrice = (i: CartItem) => i.kitDiscount ? Math.round(i.tool.price * (1 - i.kitDiscount / 100)) : i.tool.price;
+  const rentTotal = cart.reduce((sum, i) => sum + itemPrice(i) * i.days * i.qty, 0);
   const depositTotal = cart.reduce((sum, i) => sum + (i.tool.deposit || 0) * i.qty, 0);
   const total = rentTotal + depositTotal;
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -87,7 +90,7 @@ export default function Checkout() {
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setSending(true);
-    const cartData = cart.map((i) => ({ id: i.tool.id, name: i.tool.name, price: i.tool.price, days: i.days, qty: i.qty, deposit: i.tool.deposit || 0 }));
+    const cartData = cart.map((i) => ({ id: i.tool.id, name: i.tool.name, price: itemPrice(i), days: i.days, qty: i.qty, deposit: i.tool.deposit || 0 }));
     const orderPayload = {
       name,
       phone,
@@ -301,7 +304,15 @@ export default function Checkout() {
                     <div className="flex-1 min-w-0">
                       <div className="font-body text-sm font-medium leading-tight truncate">{item.tool.name}</div>
                       <div className="font-body text-xs text-muted-foreground mt-0.5">{item.qty} шт × {item.days} дн</div>
-                      <div className="font-display font-semibold text-sm mt-0.5">{item.tool.price * item.days * item.qty} ₽</div>
+                      {item.kitDiscount ? (
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="font-body text-xs text-muted-foreground line-through">{item.tool.price * item.days * item.qty} ₽</span>
+                          <span className="font-display font-semibold text-sm text-accent">{itemPrice(item) * item.days * item.qty} ₽</span>
+                          <span className="font-body text-[10px] px-1.5 py-0.5 bg-accent/10 text-accent">−{item.kitDiscount}%</span>
+                        </div>
+                      ) : (
+                        <div className="font-display font-semibold text-sm mt-0.5">{itemPrice(item) * item.days * item.qty} ₽</div>
+                      )}
                       {!!item.tool.deposit && (
                         <div className="font-body text-xs text-muted-foreground mt-0.5">+ залог {item.tool.deposit * item.qty} ₽</div>
                       )}

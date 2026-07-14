@@ -20,7 +20,7 @@ def resolve_images(image: str, images: list) -> list:
     return imgs
 
 def handler(event: dict, context) -> dict:
-    """Возвращает каталог: инструменты, комплектующие и спецтехника из БД."""
+    """Возвращает каталог: инструменты, комплектующие, спецтехника, акционные наборы и отзывы клиентов из БД."""
     if event.get('httpMethod') == 'OPTIONS':
         return {'statusCode': 200, 'headers': HEADERS, 'body': ''}
 
@@ -75,11 +75,33 @@ def handler(event: dict, context) -> dict:
             'price': row[7], 'priceUnit': row[8], 'available': row[9],
         })
 
+    cur.execute("""
+        SELECT id, name, description, tool_ids, discount_percent, icon
+        FROM kits WHERE active = true ORDER BY sort_order, id
+    """)
+    kits = []
+    for row in cur.fetchall():
+        kits.append({
+            'id': row[0], 'name': row[1], 'description': row[2],
+            'toolIds': row[3] or [], 'discountPercent': row[4], 'icon': row[5],
+        })
+
+    cur.execute("""
+        SELECT id, author_name, rating, text, tool_name
+        FROM reviews WHERE active = true ORDER BY sort_order, id
+    """)
+    reviews = []
+    for row in cur.fetchall():
+        reviews.append({
+            'id': row[0], 'authorName': row[1], 'rating': row[2],
+            'text': row[3], 'toolName': row[4],
+        })
+
     cur.close()
     conn.close()
 
     return {
         'statusCode': 200,
         'headers': HEADERS,
-        'body': json.dumps({'tools': tools, 'parts': parts, 'machines': machines}, ensure_ascii=False),
+        'body': json.dumps({'tools': tools, 'parts': parts, 'machines': machines, 'kits': kits, 'reviews': reviews}, ensure_ascii=False),
     }

@@ -56,6 +56,25 @@ interface CartItem {
   tool: Tool;
   days: number;
   qty: number;
+  kitDiscount?: number;
+  kitName?: string;
+}
+
+interface Kit {
+  id: number;
+  name: string;
+  description: string;
+  toolIds: number[];
+  discountPercent: number;
+  icon: string;
+}
+
+interface Review {
+  id: number;
+  authorName: string;
+  rating: number;
+  text: string;
+  toolName: string;
 }
 
 const TOOL_CATEGORIES = ['Все', 'Электроинструмент', 'Сварка', 'Ручной инструмент', 'Измерение', 'Электромонтаж', 'Сад и техника', 'Экипировка'];
@@ -69,6 +88,7 @@ const NAV = [
   { label: 'Спецтехника', id: 'spectech' },
   { label: 'О компании', id: 'about' },
   { label: 'Условия аренды', id: 'terms' },
+  { label: 'Отзывы', id: 'reviews' },
   { label: 'Контакты', id: 'contacts' },
 ];
 
@@ -85,6 +105,8 @@ export default function Index() {
   const [tools, setTools] = useState<Tool[]>([]);
   const [parts, setParts] = useState<Part[]>([]);
   const [machines, setMachines] = useState<SpecMachine[]>([]);
+  const [kits, setKits] = useState<Kit[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Каталог — фильтры инструментов
@@ -133,6 +155,8 @@ export default function Index() {
       setTools(data.tools || []);
       setParts(data.parts || []);
       setMachines(data.machines || []);
+      setKits(data.kits || []);
+      setReviews(data.reviews || []);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -156,12 +180,27 @@ export default function Index() {
 
   const activeFiltersCount = (activeType !== 'Все типы' ? 1 : 0) + (activeMaterial !== 'Все материалы' ? 1 : 0);
   const cartCount = cart.reduce((sum, i) => sum + i.qty, 0);
-  const rentTotal = cart.reduce((sum, i) => sum + i.tool.price * i.days * i.qty, 0);
+  const itemPrice = (i: CartItem) => i.kitDiscount ? Math.round(i.tool.price * (1 - i.kitDiscount / 100)) : i.tool.price;
+  const rentTotal = cart.reduce((sum, i) => sum + itemPrice(i) * i.days * i.qty, 0);
   const depositTotal = cart.reduce((sum, i) => sum + (i.tool.deposit || 0) * i.qty, 0);
   const total = rentTotal + depositTotal;
 
   const addToCart = (tool: Tool) => {
     setCart((prev) => (prev.some((i) => i.tool.id === tool.id) ? prev : [...prev, { tool, days: 1, qty: 1 }]));
+    setCartOpen(true);
+  };
+  const addKitToCart = (kit: Kit) => {
+    setCart((prev) => {
+      const next = [...prev];
+      kit.toolIds.forEach((toolId) => {
+        const tool = tools.find((t) => t.id === toolId);
+        if (!tool) return;
+        const idx = next.findIndex((i) => i.tool.id === toolId);
+        if (idx === -1) next.push({ tool, days: 1, qty: 1, kitDiscount: kit.discountPercent, kitName: kit.name });
+        else next[idx] = { ...next[idx], kitDiscount: kit.discountPercent, kitName: kit.name };
+      });
+      return next;
+    });
     setCartOpen(true);
   };
   const setDays = (id: number, days: number) =>
@@ -177,7 +216,7 @@ export default function Index() {
   const handleOrder = async () => {
     if (!orderName || !orderPhone || !orderEmailValid) return;
     setOrderSending(true);
-    const cartData = cart.map((i) => ({ id: i.tool.id, name: i.tool.name, price: i.tool.price, days: i.days, qty: i.qty, deposit: i.tool.deposit || 0 }));
+    const cartData = cart.map((i) => ({ id: i.tool.id, name: i.tool.name, price: itemPrice(i), days: i.days, qty: i.qty, deposit: i.tool.deposit || 0 }));
     await submitOrder({ name: orderName, phone: orderPhone, email: orderEmail, message: orderMessage, cart: cartData, deliveryMethod: 'pickup', paymentMethod: 'cash' });
     setOrderSending(false);
     setOrderSent(true);
@@ -261,6 +300,52 @@ export default function Index() {
             <div className="font-body text-sm uppercase tracking-widest text-accent mb-3">Каталог</div>
             <h2 className="font-display font-bold text-5xl md:text-6xl tracking-tight">Аренда инструмента</h2>
           </div>
+
+          {/* АКЦИОННЫЕ НАБОРЫ СО СКИДКОЙ */}
+          {kits.length > 0 && (
+            <div className="mb-10">
+              <div className="flex items-center gap-2 mb-4">
+                <Icon name="Sparkles" size={18} className="text-accent" />
+                <h3 className="font-display font-semibold text-xl">Готовые наборы — дешевле по отдельности</h3>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {kits.map((kit) => {
+                  const kitTools = kit.toolIds.map((id) => tools.find((t) => t.id === id)).filter(Boolean) as Tool[];
+                  if (kitTools.length === 0) return null;
+                  const fullPrice = kitTools.reduce((s, t) => s + t.price, 0);
+                  const discountedPrice = Math.round(fullPrice * (1 - kit.discountPercent / 100));
+                  const allInStock = kitTools.every((t) => t.stock > 0);
+                  return (
+                    <div key={kit.id} className="border border-accent/30 bg-accent/5 p-6 flex flex-col">
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div className="flex items-center gap-2">
+                          <Icon name={kit.icon} size={20} className="text-accent shrink-0" />
+                          <h4 className="font-display font-semibold text-lg leading-tight">{kit.name}</h4>
+                        </div>
+                        <span className="font-body text-xs px-2 py-1 bg-accent text-white shrink-0 whitespace-nowrap">−{kit.discountPercent}%</span>
+                      </div>
+                      <p className="font-body text-sm text-muted-foreground mb-4">{kit.description}</p>
+                      <div className="flex flex-wrap gap-1.5 mb-4">
+                        {kitTools.map((t) => (
+                          <span key={t.id} className="font-body text-xs px-2 py-1 bg-background border border-border text-muted-foreground">{t.name}</span>
+                        ))}
+                      </div>
+                      <div className="mt-auto flex items-end justify-between gap-3">
+                        <div>
+                          <span className="font-body text-sm text-muted-foreground line-through mr-2">{fullPrice} ₽</span>
+                          <span className="font-display font-bold text-2xl text-accent">{discountedPrice} ₽</span>
+                          <span className="font-body text-xs text-muted-foreground"> / сутки за комплект</span>
+                        </div>
+                      </div>
+                      <Button onClick={() => addKitToCart(kit)} disabled={!allInStock} className="w-full mt-4 bg-accent hover:bg-accent/90 text-accent-foreground rounded-none h-11 font-body disabled:opacity-40">
+                        {allInStock ? 'Добавить набор в корзину' : 'Не все позиции в наличии'}
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Поиск + кнопка фильтров */}
           <div className="flex gap-3 mb-6">
@@ -637,8 +722,79 @@ export default function Index() {
           <p className="mt-3 font-body text-sm text-muted-foreground max-w-2xl">
             Если за последний год вы оформили заказы на сумму более 20 000 ₽ и всегда соблюдали условия аренды — залог для новой брони не потребуется.
           </p>
+
+          {/* ГАРАНТИИ */}
+          <div className="mt-16">
+            <div className="font-body text-sm uppercase tracking-widest text-accent mb-3">Наши гарантии</div>
+            <h3 className="font-display font-bold text-3xl md:text-4xl tracking-tight mb-8">Работаем честно</h3>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border">
+              {[
+                { icon: 'RefreshCw', t: 'Замена за 24 часа', d: 'Если инструмент вышел из строя не по вашей вине — заменим в течение суток' },
+                { icon: 'CalendarCheck', t: 'Оплата по факту дней', d: 'Платите ровно за то время, что фактически пользовались техникой' },
+                { icon: 'Infinity', t: 'Без ограничения срока', d: 'Максимального срока аренды нет — продлевайте, пока нужно' },
+                { icon: 'Wrench', t: 'Техника проверена', d: 'Каждая единица проходит проверку и обслуживание перед выдачей' },
+              ].map((g, i) => (
+                <div key={i} className="bg-card p-6">
+                  <Icon name={g.icon} size={28} className="text-accent mb-3" />
+                  <div className="font-display font-semibold text-base mb-1.5">{g.t}</div>
+                  <div className="font-body text-sm text-muted-foreground">{g.d}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* СКИДКИ ЗА ОБЪЁМ */}
+          <div className="mt-16">
+            <div className="font-body text-sm uppercase tracking-widest text-accent mb-3">Экономьте больше</div>
+            <h3 className="font-display font-bold text-3xl md:text-4xl tracking-tight mb-8">Скидки за объём аренды</h3>
+            <div className="grid sm:grid-cols-2 gap-px bg-border border border-border mb-6">
+              <div className="bg-card p-6">
+                <Icon name="Package" size={26} className="text-accent mb-3" />
+                <div className="font-display font-semibold text-lg mb-1.5">От 3 инструментов</div>
+                <div className="font-body text-sm text-muted-foreground">При одновременной аренде от 3 позиций — скидка 5% на всю бронь</div>
+              </div>
+              <div className="bg-card p-6">
+                <Icon name="CalendarRange" size={26} className="text-accent mb-3" />
+                <div className="font-display font-semibold text-lg mb-1.5">От 7 дней аренды</div>
+                <div className="font-body text-sm text-muted-foreground">При аренде от недели и дольше — скидка 10% на каждый день сверх недели</div>
+              </div>
+            </div>
+            <p className="font-body text-sm text-muted-foreground max-w-2xl mb-6">
+              Скидка за объём применяется автоматически менеджером при подтверждении заявки. А для типовых видов работ
+              собраны готовые наборы инструментов с фиксированной скидкой — смотрите блок «Готовые наборы» в каталоге выше.
+            </p>
+            <Button variant="outline" onClick={() => scrollTo('catalog')} className="rounded-none h-11 px-6 font-body gap-2">
+              <Icon name="Sparkles" size={16} /> Смотреть готовые наборы
+            </Button>
+          </div>
         </div>
       </section>
+
+      {/* REVIEWS */}
+      {reviews.length > 0 && (
+        <section id="reviews" className="py-24 bg-secondary">
+          <div className="container">
+            <div className="font-body text-sm uppercase tracking-widest text-accent mb-3">Отзывы</div>
+            <h2 className="font-display font-bold text-5xl md:text-6xl tracking-tight mb-12">Нам доверяют</h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border">
+              {reviews.map((r) => (
+                <div key={r.id} className="bg-card p-6 flex flex-col">
+                  <div className="flex items-center gap-0.5 mb-3">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Icon key={i} name="Star" size={15} className={i < r.rating ? 'text-accent fill-accent' : 'text-border'} />
+                    ))}
+                  </div>
+                  <p className="font-body text-sm text-muted-foreground mb-4 flex-1">{r.text}</p>
+                  <div>
+                    <div className="font-display font-semibold text-sm">{r.authorName}</div>
+                    {r.toolName && <div className="font-body text-xs text-muted-foreground">{r.toolName}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* CONTACTS */}
       <section id="contacts" className="py-24 bg-secondary">
@@ -749,7 +905,19 @@ export default function Index() {
                             <h4 className="font-display font-semibold text-base leading-tight">{item.tool.name}</h4>
                             <button onClick={() => removeItem(item.tool.id)} className="text-muted-foreground hover:text-destructive shrink-0"><Icon name="X" size={16} /></button>
                           </div>
-                          <div className="font-body text-sm text-muted-foreground">{item.tool.price} ₽ / сутки / шт</div>
+                          {item.kitDiscount ? (
+                            <div className="flex items-center gap-2">
+                              <span className="font-body text-sm text-muted-foreground line-through">{item.tool.price} ₽</span>
+                              <span className="font-body text-sm text-accent font-medium">{itemPrice(item)} ₽ / сутки / шт</span>
+                            </div>
+                          ) : (
+                            <div className="font-body text-sm text-muted-foreground">{item.tool.price} ₽ / сутки / шт</div>
+                          )}
+                          {item.kitName && (
+                            <div className="font-body text-[11px] text-accent flex items-center gap-1 mt-0.5">
+                              <Icon name="Tag" size={11} /> {item.kitName} (−{item.kitDiscount}%)
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="mb-2">
@@ -777,7 +945,7 @@ export default function Index() {
                           <span className="font-body text-sm w-12 text-center">{item.days} дн</span>
                           <button onClick={() => setDays(item.tool.id, item.days + 1)} className="w-8 h-8 flex items-center justify-center hover:bg-secondary"><Icon name="Plus" size={13} /></button>
                         </div>
-                        <span className="font-display font-semibold text-lg">{item.tool.price * item.days * item.qty} ₽</span>
+                        <span className="font-display font-semibold text-lg">{itemPrice(item) * item.days * item.qty} ₽</span>
                       </div>
                       {!!item.tool.deposit && (
                         <div className="font-body text-xs text-muted-foreground mt-1 text-right">+ залог {item.tool.deposit * item.qty} ₽</div>
