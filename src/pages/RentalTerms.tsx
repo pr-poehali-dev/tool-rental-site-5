@@ -66,9 +66,7 @@ export default function RentalTerms() {
           <p className="mt-3 font-body text-sm text-muted-foreground max-w-2xl">
             При аренде инструмента номинальной стоимостью выше 10 000 ₽ для оформления заказа потребуется паспорт гражданина РФ.
           </p>
-          <p className="mt-3 font-body text-sm text-muted-foreground max-w-2xl">
-            Если за последний год вы оформили заказы на сумму более 20 000 ₽ и всегда соблюдали условия аренды — залог для новой брони не потребуется.
-          </p>
+          <p className="mt-3 font-body text-sm text-muted-foreground max-w-2xl"></p>
 
           {/* ГАРАНТИИ */}
           <div className="mt-16">
