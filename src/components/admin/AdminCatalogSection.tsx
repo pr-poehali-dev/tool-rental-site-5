@@ -7,7 +7,7 @@ import ManualUploader from '@/components/ManualUploader';
 
 type Tab = 'tools' | 'parts' | 'machines' | 'orders' | 'clients';
 
-const TOOL_CATEGORIES = ['Электроинструмент', 'Сварка', 'Ручной инструмент', 'Измерение', 'Электромонтаж', 'Сад и техника', 'Экипировка'];
+const TOOL_CATEGORIES = ['Электроинструмент', 'Бензоинструмент', 'Сварка', 'Ручной инструмент', 'Измерение', 'Электромонтаж', 'Сад и техника', 'Экипировка'];
 const PART_CATEGORIES = ['Оснастка'];
 
 interface AdminCatalogSectionProps {
