@@ -144,6 +144,38 @@ def upload_evidence(body: dict) -> dict:
         return {'error': f'Не удалось сохранить файл в хранилище: {e}'}
 
 
+MAX_LEGAL_DOC_SIZE = 8 * 1024 * 1024  # 8 МБ — с запасом под лимит размера запроса облачной функции
+
+
+def upload_legal_doc(body: dict) -> dict:
+    """Загружает документ (PDF/JPEG/PNG) для раздела «Условия аренды» в S3, возвращает {url, fileType}."""
+    data = body.get('data', '')
+    filename = body.get('filename', 'document.pdf')
+    ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'pdf'
+    ct_map = {'pdf': 'application/pdf', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png'}
+    if ext not in ct_map:
+        return {'error': 'Разрешены только файлы PDF, JPEG или PNG'}
+    if ',' in data:
+        data = data.split(',', 1)[1]
+    try:
+        file_bytes = base64.b64decode(data)
+    except Exception:
+        return {'error': 'Не удалось прочитать файл. Попробуйте выбрать файл заново'}
+
+    if not file_bytes:
+        return {'error': 'Нет данных'}
+    if len(file_bytes) > MAX_LEGAL_DOC_SIZE:
+        return {'error': f'Файл слишком большой (макс. {MAX_LEGAL_DOC_SIZE // (1024 * 1024)} МБ)'}
+
+    try:
+        key = f"legal-documents/{uuid.uuid4().hex}.{ext}"
+        get_s3().put_object(Bucket='files', Key=key, Body=file_bytes, ContentType=ct_map[ext])
+        cdn_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+        return {'url': cdn_url, 'fileType': 'pdf' if ext == 'pdf' else 'image'}
+    except Exception as e:
+        return {'error': f'Не удалось сохранить файл в хранилище: {e}'}
+
+
 def handler(event: dict, context) -> dict:
     """CRUD + загрузка фото и PDF-инструкций для инструментов, комплектующих и спецтехники. Требует X-Admin-Token."""
     if event.get('httpMethod') == 'OPTIONS':
@@ -195,6 +227,45 @@ def handler(event: dict, context) -> dict:
         if 'error' in result:
             return {'statusCode': 400, 'headers': HEADERS, 'body': json.dumps(result)}
         return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps(result)}
+
+    # Загрузка документа (PDF/JPEG/PNG) для раздела «Условия аренды» — отдельный маршрут
+    if action == 'upload_legal_doc' and method == 'POST':
+        conn.close()
+        try:
+            body = json.loads(event.get('body') or '{}')
+        except Exception:
+            return {'statusCode': 400, 'headers': HEADERS, 'body': json.dumps({'error': f'Файл слишком большой (макс. {MAX_LEGAL_DOC_SIZE // (1024 * 1024)} МБ) или повреждён'})}
+        result = upload_legal_doc(body)
+        if 'error' in result:
+            return {'statusCode': 400, 'headers': HEADERS, 'body': json.dumps(result)}
+        return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps(result)}
+
+    # CRUD документов раздела «Условия аренды» — отдельная сущность (без картинок/reorder-логики каталога)
+    if params.get('entity') == 'legal_documents':
+        cur = conn.cursor()
+        if method == 'GET':
+            cur.execute("SELECT id, title, file_url, file_type FROM legal_documents ORDER BY sort_order, id")
+            result = [{'id': r[0], 'title': r[1], 'fileUrl': r[2], 'fileType': r[3]} for r in cur.fetchall()]
+            cur.close(); conn.close()
+            return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps(result, ensure_ascii=False)}
+        if method == 'POST':
+            body = json.loads(event.get('body') or '{}')
+            cur.execute("SELECT COALESCE(MAX(sort_order), 0) + 1 FROM legal_documents")
+            next_order = cur.fetchone()[0]
+            cur.execute(
+                "INSERT INTO legal_documents (title, file_url, file_type, sort_order) VALUES (%s,%s,%s,%s) RETURNING id",
+                (body.get('title', ''), body.get('fileUrl', ''), body.get('fileType', 'pdf'), next_order)
+            )
+            new_id = cur.fetchone()[0]
+            conn.commit(); cur.close(); conn.close()
+            return {'statusCode': 201, 'headers': HEADERS, 'body': json.dumps({'id': new_id})}
+        if method == 'DELETE':
+            doc_id = params.get('id')
+            cur.execute("DELETE FROM legal_documents WHERE id=%s", (doc_id,))
+            conn.commit(); cur.close(); conn.close()
+            return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps({'ok': True})}
+        cur.close(); conn.close()
+        return {'statusCode': 405, 'headers': HEADERS, 'body': ''}
 
     entity = params.get('entity', 'tools')
     table = entity if entity in ('tools', 'parts') else 'spec_machines'

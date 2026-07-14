@@ -5,7 +5,7 @@
       "method": "GET",
       "path": "/",
       "expectedStatus": 200,
-      "expectedBody": {"tools": [], "parts": [], "machines": [], "kits": [], "reviews": []},
+      "expectedBody": {"tools": [], "parts": [], "machines": [], "kits": [], "reviews": [], "legalDocuments": []},
       "bodyMatcher": "keys_exist"
     }
   ]

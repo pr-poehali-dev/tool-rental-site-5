@@ -1,0 +1,80 @@
+import { useNavigate } from 'react-router-dom';
+import Icon from '@/components/ui/icon';
+import { Button } from '@/components/ui/button';
+
+export default function About() {
+  const navigate = useNavigate();
+
+  return (
+    <div className="min-h-screen">
+      <header className="bg-background border-b border-border sticky top-0 z-30">
+        <div className="container flex items-center justify-between h-16">
+          <button onClick={() => navigate('/')} className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-accent flex items-center justify-center">
+              <Icon name="Wrench" size={15} className="text-white" />
+            </div>
+            <span className="font-display font-bold text-lg">Строй_Rent</span>
+          </button>
+          <button onClick={() => navigate('/')} className="font-body text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5">
+            <Icon name="ArrowLeft" size={15} /> На главную
+          </button>
+        </div>
+      </header>
+
+      <section className="py-24 bg-foreground text-background">
+        <div className="container grid md:grid-cols-2 gap-16 items-center">
+          <div>
+            <div className="font-body text-sm uppercase tracking-widest text-accent mb-3">О компании</div>
+            <h1 className="font-display font-bold text-5xl md:text-6xl tracking-tight mb-8">Начинаем свой путь с качества и доверия</h1>
+            <p className="font-body text-lg text-background/70 mb-6">Мы — команда, которая понимает стройку изнутри. Предоставляем в аренду только проверенное профессиональное оборудование ведущих брендов.</p>
+            <p className="font-body text-lg text-background/70">Каждый инструмент проходит техобслуживание перед выдачей. Вы получаете надёжную технику, готовую к работе.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-px bg-background/10">
+            {[{ icon: 'ShieldCheck', t: 'Гарантия', d: 'Проверенная техника' }, { icon: 'Truck', t: 'Доставка', d: 'По всему городу' }, { icon: 'Clock', t: 'Скорость', d: 'Выдача за 15 минут' }, { icon: 'Wallet', t: 'Цены', d: 'Без переплат' }].map((f, i) => (
+              <div key={i} className="bg-foreground p-8">
+                <Icon name={f.icon} size={32} className="text-accent mb-4" />
+                <div className="font-display font-semibold text-xl mb-1">{f.t}</div>
+                <div className="font-body text-sm text-background/60">{f.d}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-16">
+        <div className="container">
+          <div className="grid sm:grid-cols-2 md:grid-cols-4 divide-x divide-border border border-border">
+            {[{ n: '200+', l: 'единиц техники' }, { n: '24/7', l: 'поддержка' }, { n: '1 час', l: 'на доставку' }, { n: '5 лет', l: 'на рынке' }].map((s, i) => (
+              <div key={i} className="py-8 px-4 md:px-8">
+                <div className="font-display font-semibold text-4xl">{s.n}</div>
+                <div className="font-body text-sm text-muted-foreground mt-1">{s.l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-16 bg-secondary">
+        <div className="container text-center">
+          <Button onClick={() => navigate('/')} className="bg-accent hover:bg-accent/90 text-accent-foreground rounded-none h-12 px-8 font-body gap-2">
+            Перейти в каталог <Icon name="ArrowRight" size={16} />
+          </Button>
+        </div>
+      </section>
+
+      <footer className="bg-foreground text-background py-12">
+        <div className="container flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-accent flex items-center justify-center">
+              <Icon name="Wrench" size={18} className="text-white" />
+            </div>
+            <span className="font-display font-bold text-2xl">Строй_Rent</span>
+          </div>
+          <div className="font-body text-sm text-background/50">
+            © 2026 Строй_Rent. Аренда строительного инструмента и спецтехники.
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}

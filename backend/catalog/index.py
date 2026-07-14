@@ -97,11 +97,19 @@ def handler(event: dict, context) -> dict:
             'text': row[3], 'toolName': row[4],
         })
 
+    cur.execute("SELECT id, title, file_url, file_type FROM legal_documents ORDER BY sort_order, id")
+    legal_documents = []
+    for row in cur.fetchall():
+        legal_documents.append({'id': row[0], 'title': row[1], 'fileUrl': row[2], 'fileType': row[3]})
+
     cur.close()
     conn.close()
 
     return {
         'statusCode': 200,
         'headers': HEADERS,
-        'body': json.dumps({'tools': tools, 'parts': parts, 'machines': machines, 'kits': kits, 'reviews': reviews}, ensure_ascii=False),
+        'body': json.dumps({
+            'tools': tools, 'parts': parts, 'machines': machines, 'kits': kits, 'reviews': reviews,
+            'legalDocuments': legal_documents,
+        }, ensure_ascii=False),
     }

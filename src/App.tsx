@@ -10,6 +10,8 @@ import Checkout from "./pages/Checkout";
 import OrderStatus from "./pages/OrderStatus";
 import Account from "./pages/Account";
 import AccountLogin from "./pages/AccountLogin";
+import About from "./pages/About";
+import RentalTerms from "./pages/RentalTerms";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +29,8 @@ const App = () => (
           <Route path="/order/:id" element={<OrderStatus />} />
           <Route path="/account" element={<Account />} />
           <Route path="/account/login" element={<AccountLogin />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/rental-terms" element={<RentalTerms />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

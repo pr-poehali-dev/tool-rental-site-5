@@ -7,13 +7,15 @@ import {
   rejectOrder as rejectOrderApi, deleteOrder as deleteOrderApi,
   addClientAddress, deleteClientAddress,
   resolveDeposit, confirmDepositRefund, DepositResolutionItem,
+  getLegalDocuments, LegalDocument,
 } from '@/api';
 import AdminLoginScreen from '@/components/admin/AdminLoginScreen';
 import AdminCatalogSection from '@/components/admin/AdminCatalogSection';
 import AdminOrdersSection from '@/components/admin/AdminOrdersSection';
 import AdminClientsSection from '@/components/admin/AdminClientsSection';
+import AdminLegalDocsSection from '@/components/admin/AdminLegalDocsSection';
 
-type Tab = 'tools' | 'parts' | 'machines' | 'orders' | 'clients';
+type Tab = 'tools' | 'parts' | 'machines' | 'orders' | 'clients' | 'legal';
 
 function emptyTool() {
   return { name: '', category: 'Электроинструмент', price: 0, image: '', stock: 0, totalStock: 0, specs: '', toolType: '', material: [] as string[], active: true, deposit: 0, manualPdfUrl: '', manualVideoUrl: '' };
@@ -67,7 +69,7 @@ export default function Admin() {
   const [authLoading, setAuthLoading] = useState(false);
 
   const [tab, setTab] = useState<Tab>('tools');
-  const [data, setData] = useState<Record<Tab, unknown[]>>({ tools: [], parts: [], machines: [], orders: [], clients: [] });
+  const [data, setData] = useState<Record<Tab, unknown[]>>({ tools: [], parts: [], machines: [], orders: [], clients: [], legal: [] });
   const [dataLoading, setDataLoading] = useState(false);
 
   // Заявки — архив + продление
@@ -132,6 +134,7 @@ export default function Admin() {
     let loader: Promise<unknown[]>;
     if (tab === 'orders') loader = getOrders(token, showArchived);
     else if (tab === 'clients') loader = getClients(token);
+    else if (tab === 'legal') loader = getLegalDocuments(token);
     else loader = adminGet(tab === 'machines' ? 'machines' : tab, token);
 
     loader.then((d) => {
@@ -164,8 +167,7 @@ export default function Admin() {
   };
 
   const refreshTabData = async () => {
-    const entity = tab === 'machines' ? 'machines' : tab;
-    const updated = await adminGet(entity, token);
+    const updated = tab === 'legal' ? await getLegalDocuments(token) : await adminGet(tab === 'machines' ? 'machines' : tab, token);
     setData((prev) => ({ ...prev, [tab]: Array.isArray(updated) ? updated : [] }));
   };
 
@@ -351,7 +353,7 @@ export default function Admin() {
     );
   }
 
-  const items = tab !== 'clients' ? data[tab] as Record<string, unknown>[] : [];
+  const items = tab !== 'clients' && tab !== 'legal' ? data[tab] as Record<string, unknown>[] : [];
   const newOrdersCount = (data.orders as Record<string, unknown>[]).filter((o) => o.status === 'new').length;
 
   return (
@@ -385,6 +387,7 @@ export default function Admin() {
             ['machines', 'Спецтехника', 'Truck'],
             ['orders', 'Заявки', 'ClipboardList'],
             ['clients', 'Клиенты', 'Users'],
+            ['legal', 'Условия аренды', 'FileText'],
           ] as [Tab, string, string][]).map(([key, label, icon]) => (
             <button key={key} onClick={() => setTab(key)}
               className={`flex items-center gap-2 px-4 py-2 font-body text-sm transition-colors ${tab === key ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}>
@@ -486,6 +489,14 @@ export default function Admin() {
                 handleSaveClient={handleSaveClient}
                 handleAddAddress={handleAddAddress}
                 handleDeleteAddress={handleDeleteAddress}
+              />
+            )}
+
+            {tab === 'legal' && (
+              <AdminLegalDocsSection
+                documents={data.legal as LegalDocument[]}
+                token={token}
+                onChange={refreshTabData}
               />
             )}
           </>

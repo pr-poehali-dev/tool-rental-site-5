@@ -252,6 +252,59 @@ export async function uploadImageUrl(token: string, url: string): Promise<string
   throw new Error(data.error || 'Ошибка загрузки');
 }
 
+// ===== Документы раздела «Условия аренды» =====
+
+export interface LegalDocument {
+  id: number;
+  title: string;
+  fileUrl: string;
+  fileType: string;
+}
+
+export async function uploadLegalDoc(token: string, file: File): Promise<{ url: string; fileType: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const res = await fetch(`${ADMIN_TOOLS_URL}?action=upload_legal_doc`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+          body: JSON.stringify({ data: reader.result as string, filename: file.name }),
+        });
+        const data = await res.json();
+        if (data.url) resolve({ url: data.url, fileType: data.fileType });
+        else reject(new Error(data.error || 'Ошибка загрузки'));
+      } catch (e) { reject(e); }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+export async function getLegalDocuments(token: string): Promise<LegalDocument[]> {
+  const res = await fetch(`${ADMIN_TOOLS_URL}?entity=legal_documents`, {
+    headers: { 'X-Admin-Token': token },
+  });
+  return res.json();
+}
+
+export async function addLegalDocument(token: string, title: string, fileUrl: string, fileType: string) {
+  const res = await fetch(`${ADMIN_TOOLS_URL}?entity=legal_documents`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+    body: JSON.stringify({ title, fileUrl, fileType }),
+  });
+  return res.json();
+}
+
+export async function deleteLegalDocument(token: string, id: number) {
+  const res = await fetch(`${ADMIN_TOOLS_URL}?entity=legal_documents&id=${id}`, {
+    method: 'DELETE',
+    headers: { 'X-Admin-Token': token },
+  });
+  return res.json();
+}
+
 // ===== Личный кабинет клиента =====
 
 export async function requestClientCode(channel: 'email' | 'phone', contact: string, fullName?: string) {

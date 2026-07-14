@@ -86,10 +86,13 @@ const NAV = [
   { label: 'Инструмент', id: 'catalog' },
   { label: 'Комплектующие', id: 'parts' },
   { label: 'Спецтехника', id: 'spectech' },
-  { label: 'О компании', id: 'about' },
-  { label: 'Условия аренды', id: 'terms' },
   { label: 'Отзывы', id: 'reviews' },
   { label: 'Контакты', id: 'contacts' },
+];
+
+const NAV_LINKS = [
+  { label: 'О компании', path: '/about' },
+  { label: 'Условия аренды', path: '/rental-terms' },
 ];
 
 const STATUS_COLORS: Record<string, string> = {
@@ -240,6 +243,11 @@ export default function Index() {
                 {n.label}
               </button>
             ))}
+            {NAV_LINKS.map((n) => (
+              <button key={n.path} onClick={() => navigate(n.path)} className="font-body text-sm text-muted-foreground hover:text-foreground transition-colors">
+                {n.label}
+              </button>
+            ))}
           </nav>
           <div className="flex items-center gap-1">
             <Button variant="ghost" onClick={() => navigate(authed ? '/account' : '/account/login')} className="gap-2 font-body">
@@ -275,7 +283,7 @@ export default function Index() {
               <Button size="lg" onClick={() => scrollTo('catalog')} className="bg-accent hover:bg-accent/90 text-accent-foreground font-body rounded-none h-14 px-8 text-base">
                 Смотреть каталог <Icon name="ArrowRight" size={18} className="ml-2" />
               </Button>
-              <Button size="lg" variant="outline" onClick={() => scrollTo('terms')} className="rounded-none h-14 px-8 text-base font-body">
+              <Button size="lg" variant="outline" onClick={() => navigate('/rental-terms')} className="rounded-none h-14 px-8 text-base font-body">
                 Условия аренды
               </Button>
             </div>
@@ -672,104 +680,6 @@ export default function Index() {
         </div>
       </section>
 
-      {/* ABOUT */}
-      <section id="about" className="py-24 bg-foreground text-background">
-        <div className="container grid md:grid-cols-2 gap-16 items-center">
-          <div>
-            <div className="font-body text-sm uppercase tracking-widest text-accent mb-3">О компании</div>
-            <h2 className="font-display font-bold text-5xl md:text-6xl tracking-tight mb-8">Начинаем свой путь с качества и доверия</h2>
-            <p className="font-body text-lg text-background/70 mb-6">Мы — команда, которая понимает стройку изнутри. Предоставляем в аренду только проверенное профессиональное оборудование ведущих брендов.</p>
-            <p className="font-body text-lg text-background/70">Каждый инструмент проходит техобслуживание перед выдачей. Вы получаете надёжную технику, готовую к работе.</p>
-          </div>
-          <div className="grid grid-cols-2 gap-px bg-background/10">
-            {[{ icon: 'ShieldCheck', t: 'Гарантия', d: 'Проверенная техника' }, { icon: 'Truck', t: 'Доставка', d: 'По всему городу' }, { icon: 'Clock', t: 'Скорость', d: 'Выдача за 15 минут' }, { icon: 'Wallet', t: 'Цены', d: 'Без переплат' }].map((f, i) => (
-              <div key={i} className="bg-foreground p-8">
-                <Icon name={f.icon} size={32} className="text-accent mb-4" />
-                <div className="font-display font-semibold text-xl mb-1">{f.t}</div>
-                <div className="font-body text-sm text-background/60">{f.d}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* TERMS */}
-      <section id="terms" className="py-24">
-        <div className="container">
-          <div className="font-body text-sm uppercase tracking-widest text-accent mb-3">Условия аренды</div>
-          <h2 className="font-display font-bold text-5xl md:text-6xl tracking-tight mb-12">Всё просто</h2>
-          <div className="grid md:grid-cols-3 gap-px bg-border border border-border">
-            {[{ n: '01', t: 'Выберите технику', d: 'Добавьте инструмент в корзину и укажите срок аренды. Стоимость рассчитается автоматически.' }, { n: '02', t: 'Оформите бронь', d: 'Оставьте заявку — менеджер свяжется, подтвердит наличие и согласует доставку.' }, { n: '03', t: 'Получите инструмент', d: 'Внесите залог, подпишите договор и забирайте технику или ждите доставку.' }].map((s) => (
-              <div key={s.n} className="bg-card p-8">
-                <div className="font-display font-bold text-6xl text-accent mb-6">{s.n}</div>
-                <h3 className="font-display font-semibold text-2xl mb-3">{s.t}</h3>
-                <p className="font-body text-muted-foreground">{s.d}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-8 flex flex-wrap gap-8 font-body text-sm text-muted-foreground">
-            <div className="flex items-center gap-2"><Icon name="Check" size={16} className="text-accent" /> Паспорт РФ</div>
-            <div className="flex items-center gap-2"><Icon name="Check" size={16} className="text-accent" /> Залог возвращается</div>
-            <div className="flex items-center gap-2"><Icon name="Check" size={16} className="text-accent" /> Продление в любой момент</div>
-          </div>
-          <p className="mt-6 font-body text-sm text-muted-foreground max-w-2xl">
-            Залог за инструмент фиксирован для каждой позиции и указан в карточке товара под ценой аренды.
-            Сумма вносится при получении и полностью возвращается при сдаче инструмента в исправном состоянии.
-          </p>
-          <p className="mt-3 font-body text-sm text-muted-foreground max-w-2xl">
-            При аренде инструмента номинальной стоимостью выше 10 000 ₽ для оформления заказа потребуется паспорт гражданина РФ.
-          </p>
-          <p className="mt-3 font-body text-sm text-muted-foreground max-w-2xl">
-            Если за последний год вы оформили заказы на сумму более 20 000 ₽ и всегда соблюдали условия аренды — залог для новой брони не потребуется.
-          </p>
-
-          {/* ГАРАНТИИ */}
-          <div className="mt-16">
-            <div className="font-body text-sm uppercase tracking-widest text-accent mb-3">Наши гарантии</div>
-            <h3 className="font-display font-bold text-3xl md:text-4xl tracking-tight mb-8">Работаем честно</h3>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border">
-              {[
-                { icon: 'RefreshCw', t: 'Замена за 24 часа', d: 'Если инструмент вышел из строя не по вашей вине — заменим в течение суток' },
-                { icon: 'CalendarCheck', t: 'Оплата по факту дней', d: 'Платите ровно за то время, что фактически пользовались техникой' },
-                { icon: 'Infinity', t: 'Без ограничения срока', d: 'Максимального срока аренды нет — продлевайте, пока нужно' },
-                { icon: 'Wrench', t: 'Техника проверена', d: 'Каждая единица проходит проверку и обслуживание перед выдачей' },
-              ].map((g, i) => (
-                <div key={i} className="bg-card p-6">
-                  <Icon name={g.icon} size={28} className="text-accent mb-3" />
-                  <div className="font-display font-semibold text-base mb-1.5">{g.t}</div>
-                  <div className="font-body text-sm text-muted-foreground">{g.d}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* СКИДКИ ЗА ОБЪЁМ */}
-          <div className="mt-16">
-            <div className="font-body text-sm uppercase tracking-widest text-accent mb-3">Экономьте больше</div>
-            <h3 className="font-display font-bold text-3xl md:text-4xl tracking-tight mb-8">Скидки за объём аренды</h3>
-            <div className="grid sm:grid-cols-2 gap-px bg-border border border-border mb-6">
-              <div className="bg-card p-6">
-                <Icon name="Package" size={26} className="text-accent mb-3" />
-                <div className="font-display font-semibold text-lg mb-1.5">От 3 инструментов</div>
-                <div className="font-body text-sm text-muted-foreground">При одновременной аренде от 3 позиций — скидка 5% на всю бронь</div>
-              </div>
-              <div className="bg-card p-6">
-                <Icon name="CalendarRange" size={26} className="text-accent mb-3" />
-                <div className="font-display font-semibold text-lg mb-1.5">От 7 дней аренды</div>
-                <div className="font-body text-sm text-muted-foreground">При аренде от недели и дольше — скидка 10% на каждый день сверх недели</div>
-              </div>
-            </div>
-            <p className="font-body text-sm text-muted-foreground max-w-2xl mb-6">
-              Скидка за объём применяется автоматически менеджером при подтверждении заявки. А для типовых видов работ
-              собраны готовые наборы инструментов с фиксированной скидкой — смотрите блок «Готовые наборы» в каталоге выше.
-            </p>
-            <Button variant="outline" onClick={() => scrollTo('catalog')} className="rounded-none h-11 px-6 font-body gap-2">
-              <Icon name="Sparkles" size={16} /> Смотреть готовые наборы
-            </Button>
-          </div>
-        </div>
-      </section>
-
       {/* REVIEWS */}
       {reviews.length > 0 && (
         <section id="reviews" className="py-24 bg-secondary">
@@ -871,6 +781,10 @@ export default function Index() {
               <Icon name="Wrench" size={18} className="text-white" />
             </div>
             <span className="font-display font-bold text-2xl">Строй_Rent</span>
+          </div>
+          <div className="flex items-center gap-6">
+            <button onClick={() => navigate('/about')} className="font-body text-sm text-background/60 hover:text-background transition-colors">О компании</button>
+            <button onClick={() => navigate('/rental-terms')} className="font-body text-sm text-background/60 hover:text-background transition-colors">Условия аренды</button>
           </div>
           <div className="font-body text-sm text-background/50">
             © 2026 Строй_Rent. Аренда строительного инструмента и спецтехники.
