@@ -90,11 +90,6 @@ const NAV = [
   { label: 'Контакты', id: 'contacts' },
 ];
 
-const NAV_LINKS = [
-  { label: 'О компании', path: '/about' },
-  { label: 'Условия аренды', path: '/rental-terms' },
-];
-
 const STATUS_COLORS: Record<string, string> = {
   new: 'text-blue-600',
   processing: 'text-amber-600',
@@ -240,11 +235,6 @@ export default function Index() {
           <nav className="hidden md:flex items-center gap-6">
             {NAV.map((n) => (
               <button key={n.id} onClick={() => scrollTo(n.id)} className="font-body text-sm text-muted-foreground hover:text-foreground transition-colors">
-                {n.label}
-              </button>
-            ))}
-            {NAV_LINKS.map((n) => (
-              <button key={n.path} onClick={() => navigate(n.path)} className="font-body text-sm text-muted-foreground hover:text-foreground transition-colors">
                 {n.label}
               </button>
             ))}
