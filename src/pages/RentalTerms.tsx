@@ -59,13 +59,11 @@ export default function RentalTerms() {
             <div className="flex items-center gap-2"><Icon name="Check" size={16} className="text-accent" /> Залог возвращается</div>
             <div className="flex items-center gap-2"><Icon name="Check" size={16} className="text-accent" /> Продление в любой момент</div>
           </div>
-          <p className="mt-6 font-body text-sm text-muted-foreground max-w-2xl">
+          <p className="mt-6 font-body text-sm text-muted-foreground max-w-2xl text-justify px-[11px]">
             Залог за инструмент фиксирован для каждой позиции и указан в карточке товара под ценой аренды.
             Сумма вносится при получении и полностью возвращается при сдаче инструмента в исправном состоянии.
           </p>
-          <p className="mt-3 font-body text-sm text-muted-foreground max-w-2xl">
-            При аренде инструмента номинальной стоимостью выше 10 000 ₽ для оформления заказа потребуется паспорт гражданина РФ.
-          </p>
+          <p className="font-body text-sm text-muted-foreground max-w-2xl my-[7px] text-justify mx-0 py-0 px-[11px]">При аренде инструмента за наличный расчет оплата возможна как и в офлайн-магазине , так и при доставке. Также для оформления заказа потребуется с собой наличие паспорта гражданина РФ, для составления Договора аренды и Акта приема-передачи.</p>
           <p className="mt-3 font-body text-sm text-muted-foreground max-w-2xl"></p>
 
           {/* ГАРАНТИИ */}
