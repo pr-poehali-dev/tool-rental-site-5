@@ -5,7 +5,7 @@ const ADMIN_TOOLS_URL = 'https://functions.poehali.dev/57c48d74-1d91-4e4c-8ee7-6
 const CLIENTS_URL = 'https://functions.poehali.dev/83e99fc4-f512-4980-9255-d16955727b58';
 const CLIENT_AUTH_URL = 'https://functions.poehali.dev/ba20e787-2790-4d8a-a823-87650d2d4bdb';
 const CLIENT_ACCOUNT_URL = 'https://functions.poehali.dev/6e6b2653-d8e8-4d32-bf0b-b192ab6a89a3';
-const ROBOKASSA_URL = 'https://functions.poehali.dev/5b47ecf9-1ea1-4f8f-8e2e-4b60f79d5ff6';
+const YOOKASSA_URL = 'https://functions.poehali.dev/9a33e6a2-8e6d-4610-bb35-92e7daafb7cc';
 
 export async function getCatalog() {
   const res = await fetch(CATALOG_URL);
@@ -387,8 +387,8 @@ export async function submitOrderAuthed(token: string, data: SubmitOrderData) {
   return res.json();
 }
 
-export async function createRobokassaPayment(orderId: number) {
-  const res = await fetch(ROBOKASSA_URL, {
+export async function createYookassaPayment(orderId: number) {
+  const res = await fetch(YOOKASSA_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ orderId }),

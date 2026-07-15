@@ -1,0 +1,12 @@
+{
+  "tests": [
+    {
+      "name": "Missing payment object",
+      "method": "POST",
+      "path": "/",
+      "body": {"event": "payment.succeeded", "object": {}},
+      "expectedStatus": 400,
+      "bodyMatcher": "partial"
+    }
+  ]
+}

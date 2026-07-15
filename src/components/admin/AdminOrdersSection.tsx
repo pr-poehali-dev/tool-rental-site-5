@@ -514,7 +514,7 @@ export default function AdminOrdersSection({
                 <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 px-3 py-2">
                   <Icon name="Info" size={14} className="text-amber-600 mt-0.5 shrink-0" />
                   <p className="font-body text-xs text-amber-700">
-                    Оплата была онлайн через Robokassa. После сохранения проведите возврат вручную в личном кабинете Robokassa,
+                    Оплата была онлайн через ЮKassa. После сохранения проведите возврат вручную в личном кабинете ЮKassa,
                     затем подтвердите это в системе кнопкой «Подтвердить возврат» — клиенту придёт уведомление.
                   </p>
                 </div>
@@ -540,7 +540,7 @@ export default function AdminOrdersSection({
           <div className="bg-background border border-border p-6 w-full max-w-sm">
             <h3 className="font-display font-bold text-xl mb-2">Подтвердить возврат средств?</h3>
             <p className="font-body text-sm text-muted-foreground mb-6">
-              Убедитесь, что вы уже провели возврат в личном кабинете Robokassa. После подтверждения клиенту придёт уведомление о возврате.
+              Убедитесь, что вы уже провели возврат в личном кабинете ЮKassa. После подтверждения клиенту придёт уведомление о возврате.
             </p>
             <div className="flex gap-3">
               <Button onClick={() => handleConfirmRefund(confirmRefundOrderId)} disabled={confirmRefundSaving} className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground rounded-none font-body">

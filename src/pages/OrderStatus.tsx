@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
-import { getPublicOrder, createRobokassaPayment } from '@/api';
+import { getPublicOrder, createYookassaPayment } from '@/api';
 
 interface OrderCartItem {
   name: string;
@@ -87,7 +87,7 @@ export default function OrderStatus() {
     if (!order) return;
     setPayLoading(true);
     setPayError('');
-    const res = await createRobokassaPayment(order.id);
+    const res = await createYookassaPayment(order.id);
     setPayLoading(false);
     if (res.ok && res.data.paymentUrl) {
       window.location.href = res.data.paymentUrl;

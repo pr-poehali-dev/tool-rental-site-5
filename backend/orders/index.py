@@ -446,8 +446,8 @@ def handler(event: dict, context) -> dict:
                 adjust_stock(cur, cart, +1)
 
             # Если оплата была онлайн и есть что возвращать — ставим статус "ожидает возврата",
-            # т.к. Robokassa для обычного магазина не выдаёт автоматический возврат: администратор
-            # проводит возврат вручную в личном кабинете Robokassa и подтверждает это в системе.
+            # т.к. возврат через API ЮKassa инициируется отдельным запросом: администратор
+            # проводит возврат вручную в личном кабинете ЮKassa и подтверждает это в системе.
             refund_status = 'pending' if (payment_method == 'online' and payment_status == 'paid' and refund_amount > 0) else 'none'
 
             cur.execute(
@@ -462,7 +462,7 @@ def handler(event: dict, context) -> dict:
             return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps({'ok': True, 'refundStatus': refund_status})}
 
         if action == 'confirm_deposit_refund':
-            # Администратор подтверждает, что провёл возврат денег в личном кабинете Robokassa вручную
+            # Администратор подтверждает, что провёл возврат денег в личном кабинете ЮKassa вручную
             cur.execute("SELECT phone, email, name, deposit_refund_amount FROM orders WHERE id = %s", (order_id,))
             row = cur.fetchone()
             if not row:

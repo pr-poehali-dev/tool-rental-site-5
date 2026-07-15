@@ -1,6 +1,6 @@
 {
-  "robokassa-webhook": "https://functions.poehali.dev/a4371c12-86e8-4f92-979c-e6ec1a87e901",
-  "robokassa": "https://functions.poehali.dev/5b47ecf9-1ea1-4f8f-8e2e-4b60f79d5ff6",
+  "yookassa": "https://functions.poehali.dev/9a33e6a2-8e6d-4610-bb35-92e7daafb7cc",
+  "yookassa-webhook": "https://functions.poehali.dev/e9998f96-d2f1-4f07-923f-50296f725705",
   "client-auth": "https://functions.poehali.dev/ba20e787-2790-4d8a-a823-87650d2d4bdb",
   "client-account": "https://functions.poehali.dev/6e6b2653-d8e8-4d32-bf0b-b192ab6a89a3",
   "admin-clients": "https://functions.poehali.dev/83e99fc4-f512-4980-9255-d16955727b58",
