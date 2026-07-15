@@ -9,6 +9,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { submitOrder, submitOrderAuthed, getClientAccount } from '@/api';
 import { useClientAuth } from '@/hooks/useClientAuth';
+import SecondaryHeader from '@/components/layout/SecondaryHeader';
+import SiteFooter from '@/components/layout/SiteFooter';
 
 interface CartItem {
   tool: { id: number; name: string; price: number; image: string; stock: number; deposit?: number };
@@ -142,20 +144,7 @@ export default function Checkout() {
 
   return (
     <div className="min-h-screen bg-secondary">
-      {/* Шапка */}
-      <header className="bg-background border-b border-border sticky top-0 z-30">
-        <div className="container flex items-center justify-between h-16">
-          <button onClick={() => navigate('/')} className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-accent flex items-center justify-center">
-              <Icon name="Wrench" size={15} className="text-white" />
-            </div>
-            <span className="font-display font-bold text-lg">Строй_Rent</span>
-          </button>
-          <button onClick={() => navigate('/')} className="font-body text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5">
-            <Icon name="ArrowLeft" size={15} /> Вернуться в каталог
-          </button>
-        </div>
-      </header>
+      <SecondaryHeader backLabel="Вернуться в каталог" />
 
       <div className="container py-10 max-w-5xl">
         <h1 className="font-display font-bold text-3xl md:text-4xl mb-8">Оформление заявки</h1>
@@ -357,6 +346,8 @@ export default function Checkout() {
           </div>
         </div>
       </div>
+
+      <SiteFooter />
     </div>
   );
 }

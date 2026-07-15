@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { getCatalog } from '@/api';
+import SecondaryHeader from '@/components/layout/SecondaryHeader';
+import SiteFooter from '@/components/layout/SiteFooter';
 
 interface LegalDocument {
   id: number;
@@ -25,19 +27,7 @@ export default function RentalTerms() {
 
   return (
     <div className="min-h-screen">
-      <header className="bg-background border-b border-border sticky top-0 z-30">
-        <div className="container flex items-center justify-between h-16">
-          <button onClick={() => navigate('/')} className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-accent flex items-center justify-center">
-              <Icon name="Wrench" size={15} className="text-white" />
-            </div>
-            <span className="font-display font-bold text-lg">Строй_Rent</span>
-          </button>
-          <button onClick={() => navigate('/')} className="font-body text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5">
-            <Icon name="ArrowLeft" size={15} /> На главную
-          </button>
-        </div>
-      </header>
+      <SecondaryHeader />
 
       <section className="py-20">
         <div className="container">
@@ -146,19 +136,7 @@ export default function RentalTerms() {
         </div>
       </section>
 
-      <footer className="bg-foreground text-background py-12">
-        <div className="container flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-accent flex items-center justify-center">
-              <Icon name="Wrench" size={18} className="text-white" />
-            </div>
-            <span className="font-display font-bold text-2xl">Строй_Rent</span>
-          </div>
-          <div className="font-body text-sm text-background/50">
-            © 2026 Строй_Rent. Аренда строительного инструмента и спецтехники.
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

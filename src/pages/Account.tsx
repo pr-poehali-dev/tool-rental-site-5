@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getClientAccount, updateClientProfile, addAccountAddress, setDefaultAddress, deleteAccountAddress } from '@/api';
 import { useClientAuth } from '@/hooks/useClientAuth';
+import SecondaryHeader from '@/components/layout/SecondaryHeader';
+import SiteFooter from '@/components/layout/SiteFooter';
 
 interface OrderCartItem {
   name: string;
@@ -115,24 +117,16 @@ export default function Account() {
 
   return (
     <div className="min-h-screen bg-secondary">
-      <header className="bg-background border-b border-border sticky top-0 z-30">
-        <div className="container flex items-center justify-between h-16">
-          <button onClick={() => navigate('/')} className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-accent flex items-center justify-center">
-              <Icon name="Wrench" size={15} className="text-white" />
-            </div>
-            <span className="font-display font-bold text-lg">Строй_Rent</span>
-          </button>
-          <div className="flex items-center gap-3">
-            <a href="/" className="font-body text-sm text-muted-foreground hover:text-foreground flex items-center gap-1">
-              <Icon name="ArrowLeft" size={14} /> В каталог
-            </a>
-            <Button variant="ghost" onClick={handleLogout} className="font-body text-sm gap-1.5">
-              <Icon name="LogOut" size={15} /> Выйти
-            </Button>
-          </div>
+      <SecondaryHeader>
+        <div className="flex items-center gap-3">
+          <a href="/" className="font-body text-sm text-muted-foreground hover:text-foreground flex items-center gap-1">
+            <Icon name="ArrowLeft" size={14} /> В каталог
+          </a>
+          <Button variant="ghost" onClick={handleLogout} className="font-body text-sm gap-1.5">
+            <Icon name="LogOut" size={15} /> Выйти
+          </Button>
         </div>
-      </header>
+      </SecondaryHeader>
 
       <div className="container py-10 max-w-4xl">
         <h1 className="font-display font-bold text-3xl mb-8">Личный кабинет</h1>
@@ -237,6 +231,8 @@ export default function Account() {
           </div>
         </div>
       </div>
+
+      <SiteFooter />
     </div>
   );
 }

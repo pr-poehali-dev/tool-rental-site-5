@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { requestClientCode, verifyClientCode } from '@/api';
 import { useClientAuth } from '@/hooks/useClientAuth';
+import SecondaryHeader from '@/components/layout/SecondaryHeader';
+import SiteFooter from '@/components/layout/SiteFooter';
 
 type Channel = 'email' | 'phone';
 type Step = 'contact' | 'code';
@@ -54,19 +56,7 @@ export default function AccountLogin() {
 
   return (
     <div className="min-h-screen bg-secondary">
-      <header className="bg-background border-b border-border sticky top-0 z-30">
-        <div className="container flex items-center justify-between h-16">
-          <button onClick={() => navigate('/')} className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-accent flex items-center justify-center">
-              <Icon name="Wrench" size={15} className="text-white" />
-            </div>
-            <span className="font-display font-bold text-lg">Строй_Rent</span>
-          </button>
-          <button onClick={() => navigate('/')} className="font-body text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5">
-            <Icon name="ArrowLeft" size={15} /> На главную
-          </button>
-        </div>
-      </header>
+      <SecondaryHeader />
 
       <div className="container py-16 max-w-md">
         <div className="bg-background border border-border p-8">
@@ -146,6 +136,8 @@ export default function AccountLogin() {
           )}
         </div>
       </div>
+
+      <SiteFooter />
     </div>
   );
 }

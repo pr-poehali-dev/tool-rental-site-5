@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { getCatalog, submitOrder } from '@/api';
 import ImageSlider from '@/components/ImageSlider';
 import MachineAnimation from '@/components/MachineAnimation';
+import SiteFooter from '@/components/layout/SiteFooter';
 import { useClientAuth } from '@/hooks/useClientAuth';
 
 interface Tool {
@@ -763,29 +764,7 @@ export default function Index() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="bg-foreground text-background py-12">
-        <div className="container flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-accent flex items-center justify-center">
-              <Icon name="Wrench" size={18} className="text-white" />
-            </div>
-            <span className="font-display font-bold text-2xl">Строй_Rent</span>
-          </div>
-          <div className="flex items-center gap-6">
-            <button onClick={() => navigate('/about')} className="font-body text-sm text-background/60 hover:text-background transition-colors">О компании</button>
-            <button onClick={() => navigate('/rental-terms')} className="font-body text-sm text-background/60 hover:text-background transition-colors">Условия аренды</button>
-          </div>
-          <div className="font-body text-sm text-background/50">
-            © 2026 Строй_Rent. Аренда строительного инструмента и спецтехники.
-          </div>
-        </div>
-        <div className="container mt-6 pt-6 border-t border-background/10">
-          <div className="font-body text-xs text-background/40 leading-relaxed">
-            ИП Максимова Алина Николаевна · ОГРН 326508100407884 · ИНН 360203243703
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
 
       {/* CART DRAWER */}
       <Sheet open={cartOpen} onOpenChange={setCartOpen}>
