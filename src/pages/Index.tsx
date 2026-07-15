@@ -780,6 +780,13 @@ export default function Index() {
             © 2026 Строй_Rent. Аренда строительного инструмента и спецтехники.
           </div>
         </div>
+        <div className="container mt-6 pt-6 border-t border-background/10">
+          <div className="font-body text-xs text-background/40 leading-relaxed">
+            ИП Максимова Алина Николаевна · ОГРН 326508100407884 · ИНН 360203243703
+            <br />
+            Юридический адрес:{' '}
+          </div>
+        </div>
       </footer>
 
       {/* CART DRAWER */}
