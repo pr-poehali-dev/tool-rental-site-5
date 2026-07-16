@@ -597,6 +597,9 @@ export default function Index() {
                       className="w-full h-full"
                     />
                     <MachineAnimation name={m.name} />
+                    <span className="absolute top-3 left-3 bg-white/50 text-foreground font-body text-xs uppercase tracking-widest px-3 py-1.5 z-10">
+                      Скоро
+                    </span>
                   </div>
                   <div className="p-6 flex flex-col flex-1">
                     <div className="mb-4">
