@@ -35,6 +35,11 @@ export default function AdminCatalogSection({
 }: AdminCatalogSectionProps) {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
+  const [inventorySearch, setInventorySearch] = useState('');
+
+  const visibleItems = tab === 'tools' && inventorySearch.trim()
+    ? items.filter((item) => ((item.inventoryNumber as string) || '').toLowerCase().includes(inventorySearch.trim().toLowerCase()))
+    : items;
 
   const onDragStart = (i: number) => setDragIndex(i);
   const onDragOver = (i: number, e: React.DragEvent) => {
@@ -58,12 +63,27 @@ export default function AdminCatalogSection({
       <div className="flex items-center justify-between mb-6">
         <h2 className="font-display font-bold text-2xl">
           {tab === 'tools' ? 'Инструменты для аренды' : tab === 'parts' ? 'Комплектующие (продажа)' : 'Спецтехника'}
-          <span className="font-body text-base font-normal text-muted-foreground ml-3">{items.length} позиций</span>
+          <span className="font-body text-base font-normal text-muted-foreground ml-3">
+            {tab === 'tools' && inventorySearch.trim() ? `${visibleItems.length} из ${items.length}` : items.length} позиций
+          </span>
         </h2>
         <Button onClick={openNew} className="bg-accent hover:bg-accent/90 text-accent-foreground rounded-none font-body gap-2">
           <Icon name="Plus" size={16} /> Добавить
         </Button>
       </div>
+
+      {/* ПОИСК ПО ИНВЕНТАРНОМУ НОМЕРУ */}
+      {tab === 'tools' && (
+        <div className="relative mb-4 max-w-xs">
+          <Icon name="Search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={inventorySearch}
+            onChange={(e) => setInventorySearch(e.target.value)}
+            placeholder="Поиск по инв. номеру..."
+            className="pl-9 rounded-none h-10 font-body bg-background text-sm"
+          />
+        </div>
+      )}
 
       {/* ИНСТРУМЕНТЫ / КОМПЛЕКТУЮЩИЕ */}
       {(tab === 'tools' || tab === 'parts') && (
@@ -85,7 +105,9 @@ export default function AdminCatalogSection({
               </tr>
             </thead>
             <tbody>
-              {items.map((item, i) => (
+              {visibleItems.map((item) => {
+                const i = items.indexOf(item);
+                return (
                 <tr
                   key={item.id as number}
                   draggable
@@ -126,11 +148,13 @@ export default function AdminCatalogSection({
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
           {items.length > 1 && <div className="px-4 py-2 text-xs text-muted-foreground font-body border-t border-border">Перетащите строку за значок ⠿, чтобы изменить порядок</div>}
           {items.length === 0 && <div className="p-12 text-center text-muted-foreground font-body">Нет позиций. Нажмите «Добавить».</div>}
+          {items.length > 0 && visibleItems.length === 0 && <div className="p-12 text-center text-muted-foreground font-body">По инвентарному номеру ничего не найдено</div>}
         </div>
       )}
 
