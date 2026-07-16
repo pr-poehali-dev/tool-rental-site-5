@@ -77,7 +77,12 @@ def default_items_from_cart(cart):
     items = []
     for it in (cart or []):
         try:
-            items.append({'name': it.get('name', ''), 'qty': int(it.get('qty', 1) or 1), 'state': 'Исправен, без повреждений'})
+            items.append({
+                'name': it.get('name', ''),
+                'qty': int(it.get('qty', 1) or 1),
+                'inventoryNumber': it.get('inventoryNumber', ''),
+                'state': 'Исправен, без повреждений',
+            })
         except Exception:
             pass
     return items
@@ -109,12 +114,12 @@ def render_handover_pdf(order_id: int, data: dict) -> bytes:
         f'во временное владение и пользование следующий инструмент:', styles['body']))
 
     items = data.get('items') or []
-    rows = [['№', 'Наименование инструмента', 'Кол-во, шт', 'Состояние на момент выдачи']]
+    rows = [['№', 'Наименование инструмента', 'Инв. номер', 'Кол-во, шт', 'Состояние на момент выдачи']]
     for i, it in enumerate(items, 1):
-        rows.append([str(i), it.get('name', ''), str(it.get('qty', 1)), it.get('state', 'Исправен, без повреждений')])
+        rows.append([str(i), it.get('name', ''), it.get('inventoryNumber', '') or '—', str(it.get('qty', 1)), it.get('state', 'Исправен, без повреждений')])
     if len(rows) == 1:
-        rows.append(['1', '—', '—', '—'])
-    items_table = Table(rows, colWidths=[10 * mm, 78 * mm, 22 * mm, 60 * mm])
+        rows.append(['1', '—', '—', '—', '—'])
+    items_table = Table(rows, colWidths=[8 * mm, 60 * mm, 24 * mm, 18 * mm, 60 * mm])
     items_table.setStyle(TableStyle([
         ('FONTNAME', (0, 0), (-1, -1), 'DejaVu'),
         ('FONTNAME', (0, 0), (-1, 0), 'DejaVu-Bold'),
@@ -161,12 +166,12 @@ def render_return_pdf(order_id: int, data: dict) -> bytes:
         f'из временного владения и пользования следующий инструмент:', styles['body']))
 
     items = data.get('items') or []
-    rows = [['№', 'Наименование инструмента', 'Кол-во, шт', 'Состояние при возврате']]
+    rows = [['№', 'Наименование инструмента', 'Инв. номер', 'Кол-во, шт', 'Состояние при возврате']]
     for i, it in enumerate(items, 1):
-        rows.append([str(i), it.get('name', ''), str(it.get('qty', 1)), it.get('state', 'Исправен')])
+        rows.append([str(i), it.get('name', ''), it.get('inventoryNumber', '') or '—', str(it.get('qty', 1)), it.get('state', 'Исправен')])
     if len(rows) == 1:
-        rows.append(['1', '—', '—', '—'])
-    items_table = Table(rows, colWidths=[10 * mm, 78 * mm, 22 * mm, 60 * mm])
+        rows.append(['1', '—', '—', '—', '—'])
+    items_table = Table(rows, colWidths=[8 * mm, 60 * mm, 24 * mm, 18 * mm, 60 * mm])
     items_table.setStyle(TableStyle([
         ('FONTNAME', (0, 0), (-1, -1), 'DejaVu'),
         ('FONTNAME', (0, 0), (-1, 0), 'DejaVu-Bold'),

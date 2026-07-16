@@ -8,6 +8,7 @@ import {
   addClientAddress, deleteClientAddress,
   resolveDeposit, confirmDepositRefund, DepositResolutionItem,
   getLegalDocuments, LegalDocument,
+  updateAct, ActData,
 } from '@/api';
 import AdminLoginScreen from '@/components/admin/AdminLoginScreen';
 import AdminCatalogSection from '@/components/admin/AdminCatalogSection';
@@ -97,6 +98,12 @@ export default function Admin() {
   const [depositSaving, setDepositSaving] = useState(false);
   const [confirmRefundOrderId, setConfirmRefundOrderId] = useState<number | null>(null);
   const [confirmRefundSaving, setConfirmRefundSaving] = useState(false);
+
+  // Заявки — просмотр/редактирование акта приёма-передачи / возврата
+  const [actOrderItem, setActOrderItem] = useState<Record<string, unknown> | null>(null);
+  const [actKind, setActKind] = useState<'handover' | 'return'>('handover');
+  const [actData, setActData] = useState<ActData | null>(null);
+  const [actSaving, setActSaving] = useState(false);
 
   // Каталог — редактирование
   const [editItem, setEditItem] = useState<Record<string, unknown> | null>(null);
@@ -292,6 +299,34 @@ export default function Admin() {
     setData((prev) => ({ ...prev, orders: Array.isArray(updated) ? updated : [] }));
   };
 
+  const openAct = (order: Record<string, unknown>, kind: 'handover' | 'return') => {
+    const raw = (kind === 'handover' ? order.handoverActData : order.returnActData) as Partial<ActData> | undefined;
+    setActKind(kind);
+    setActOrderItem(order);
+    setActData({
+      representativeName: raw?.representativeName || '',
+      clientFullName: raw?.clientFullName || (order.name as string) || '',
+      clientPassport: raw?.clientPassport || '',
+      items: raw?.items && raw.items.length ? raw.items : [],
+      depositTotal: raw?.depositTotal || 0,
+      depositWithheld: raw?.depositWithheld || 0,
+      depositReturned: raw?.depositReturned || 0,
+      damageNotes: raw?.damageNotes || '',
+      notes: raw?.notes || '',
+    });
+  };
+
+  const handleActSave = async () => {
+    if (!actOrderItem || !actData) return;
+    setActSaving(true);
+    await updateAct(token, actOrderItem.id as number, actKind, actData);
+    setActSaving(false);
+    setActOrderItem(null);
+    setActData(null);
+    const updated = await getOrders(token, showArchived);
+    setData((prev) => ({ ...prev, orders: Array.isArray(updated) ? updated : [] }));
+  };
+
   const handleSelectClient = async (client: Client) => {
     setSelectedClient(client);
     setClientOrdersLoading(true);
@@ -471,6 +506,14 @@ export default function Admin() {
                 setConfirmRefundOrderId={setConfirmRefundOrderId}
                 confirmRefundSaving={confirmRefundSaving}
                 handleConfirmRefund={handleConfirmRefund}
+                openAct={openAct}
+                actOrderItem={actOrderItem}
+                actKind={actKind}
+                actData={actData}
+                setActData={setActData}
+                setActOrderItem={setActOrderItem}
+                actSaving={actSaving}
+                handleActSave={handleActSave}
               />
             )}
 

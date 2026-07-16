@@ -5,6 +5,7 @@ import urllib.request
 import urllib.parse
 from email.mime.text import MIMEText
 import psycopg2
+import acts
 
 HEADERS = {
     'Access-Control-Allow-Origin': '*',
@@ -34,6 +35,52 @@ def check_auth(conn, token):
     row = cur.fetchone()
     cur.close()
     return row is not None
+
+
+def cart_items_with_inventory(cur, cart):
+    """Дополняет позиции корзины инвентарным номером инструмента (актуальным на момент вызова)."""
+    tool_ids = [it.get('id') for it in (cart or []) if it.get('id')]
+    inv_map = {}
+    if tool_ids:
+        cur.execute("SELECT id, inventory_number FROM tools WHERE id = ANY(%s)", (tool_ids,))
+        inv_map = {r[0]: r[1] for r in cur.fetchall()}
+    enriched = []
+    for it in (cart or []):
+        it = dict(it)
+        it['inventoryNumber'] = inv_map.get(it.get('id'), '') or ''
+        enriched.append(it)
+    return enriched
+
+
+def get_client_full_name(cur, phone):
+    if not phone:
+        return ''
+    cur.execute("SELECT full_name FROM clients WHERE phone = %s", (phone,))
+    row = cur.fetchone()
+    return row[0] if row and row[0] else ''
+
+
+def generate_act(cur, kind, order_id, name, phone, cart, extra=None):
+    """Формирует данные и PDF акта (handover|return), сохраняет URL и данные в orders."""
+    items = acts.default_items_from_cart(cart_items_with_inventory(cur, cart))
+    data = {
+        'representativeName': '',
+        'clientFullName': get_client_full_name(cur, phone) or name or '',
+        'clientPassport': '',
+        'items': items,
+        'depositTotal': acts.deposit_total_from_cart(cart),
+        'notes': '',
+    }
+    if extra:
+        data.update(extra)
+    url = acts.generate_and_upload(kind, order_id, data)
+    field_url = 'handover_act_url' if kind == 'handover' else 'return_act_url'
+    field_data = 'handover_act_data' if kind == 'handover' else 'return_act_data'
+    cur.execute(
+        f"UPDATE orders SET {field_url}=%s, {field_data}=%s WHERE id=%s",
+        (url, json.dumps(data, ensure_ascii=False), order_id)
+    )
+    return url, data
 
 
 def adjust_stock(cur, cart, direction):
@@ -260,7 +307,8 @@ def handler(event: dict, context) -> dict:
         cur.execute("""
             SELECT id, name, cart, status, created_at, due_at, delivery_method, delivery_address,
                    receive_date, receive_time, payment_method, reject_reason, extensions, admin_comment,
-                   payment_status, payment_url, deposit_refund_amount, deposit_resolution, deposit_refund_status
+                   payment_status, payment_url, deposit_refund_amount, deposit_resolution, deposit_refund_status,
+                   handover_act_url, return_act_url
             FROM orders WHERE id = %s
         """, (order_id,))
         row = cur.fetchone()
@@ -280,6 +328,7 @@ def handler(event: dict, context) -> dict:
             'paymentStatus': row[14], 'paymentUrl': row[15],
             'depositRefundAmount': row[16], 'depositResolution': row[17] or [],
             'depositRefundStatus': row[18],
+            'handoverActUrl': row[19], 'returnActUrl': row[20],
         }
         return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps(result, ensure_ascii=False)}
 
@@ -360,7 +409,8 @@ def handler(event: dict, context) -> dict:
             SELECT id, name, phone, message, cart, status, created_at, due_at, archived, extensions,
                    delivery_method, delivery_address, receive_date, receive_time, payment_method, email,
                    reject_reason, admin_comment, payment_status, payment_url,
-                   deposit_refund_amount, deposit_resolution, deposit_refund_status
+                   deposit_refund_amount, deposit_resolution, deposit_refund_status,
+                   handover_act_url, return_act_url, handover_act_data, return_act_data
             FROM orders WHERE archived = %s ORDER BY created_at DESC LIMIT 200
         """, (show_archived,))
         rows = cur.fetchall()
@@ -375,7 +425,9 @@ def handler(event: dict, context) -> dict:
              'rejectReason': r[16], 'adminComment': r[17],
              'paymentStatus': r[18], 'paymentUrl': r[19],
              'depositRefundAmount': r[20], 'depositResolution': r[21] or [],
-             'depositRefundStatus': r[22]}
+             'depositRefundStatus': r[22],
+             'handoverActUrl': r[23], 'returnActUrl': r[24],
+             'handoverActData': r[25] or {}, 'returnActData': r[26] or {}}
             for r in rows
         ]
         cur.close()
@@ -387,6 +439,25 @@ def handler(event: dict, context) -> dict:
         order_id = body.get('id')
         action = body.get('action', '')
         cur = conn.cursor()
+
+        if action == 'update_act':
+            # Администратор вручную правит данные акта (ФИО, паспорт, состояние позиций, примечания)
+            # и заявка перегенерируется в PDF.
+            kind = body.get('kind', 'handover')  # 'handover' | 'return'
+            data = body.get('data', {})
+            if kind not in ('handover', 'return'):
+                cur.close(); conn.close()
+                return {'statusCode': 400, 'headers': HEADERS, 'body': json.dumps({'error': 'kind должен быть handover или return'})}
+            url = acts.generate_and_upload(kind, order_id, data)
+            field_url = 'handover_act_url' if kind == 'handover' else 'return_act_url'
+            field_data = 'handover_act_data' if kind == 'handover' else 'return_act_data'
+            cur.execute(
+                f"UPDATE orders SET {field_url}=%s, {field_data}=%s WHERE id=%s",
+                (url, json.dumps(data, ensure_ascii=False), order_id)
+            )
+            conn.commit()
+            cur.close(); conn.close()
+            return {'statusCode': 200, 'headers': HEADERS, 'body': json.dumps({'ok': True, 'url': url})}
 
         if action == 'extend':
             extra_days = int(body.get('extraDays', 0) or 0)
@@ -456,6 +527,13 @@ def handler(event: dict, context) -> dict:
                    WHERE id=%s""",
                 (refund_amount, json.dumps(resolution, ensure_ascii=False), refund_status, order_id)
             )
+            deposit_withheld = sum(int(r.get('amount', 0) or 0) for r in resolution if not r.get('refunded'))
+            deposit_total = acts.deposit_total_from_cart(cart)
+            generate_act(cur, 'return', order_id, name, phone, cart, extra={
+                'depositTotal': deposit_total,
+                'depositWithheld': deposit_withheld,
+                'depositReturned': refund_amount,
+            })
             conn.commit()
             cur.close(); conn.close()
             notify_deposit_resolution(phone, email, order_id, name, refund_amount, resolution, refund_status)
@@ -496,10 +574,17 @@ def handler(event: dict, context) -> dict:
                 "UPDATE orders SET status=%s, due_at = NOW() + %s * INTERVAL '1 day' WHERE id=%s",
                 (status, max_days, order_id)
             )
+            generate_act(cur, 'handover', order_id, name, phone, cart)
         elif status == 'returned':
             if prev_status == 'done':
                 adjust_stock(cur, cart, +1)
             cur.execute("UPDATE orders SET status=%s, archived=true WHERE id=%s", (status, order_id))
+            deposit_total = acts.deposit_total_from_cart(cart)
+            generate_act(cur, 'return', order_id, name, phone, cart, extra={
+                'depositTotal': deposit_total,
+                'depositWithheld': 0,
+                'depositReturned': deposit_total,
+            })
         elif status == 'processing' and comment:
             cur.execute("UPDATE orders SET status=%s, admin_comment=%s WHERE id=%s", (status, comment, order_id))
         else:

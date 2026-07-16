@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
-import { uploadEvidence, DepositResolutionItem } from '@/api';
+import { uploadEvidence, DepositResolutionItem, ActData } from '@/api';
 
 const STATUS_SWITCH: string[] = ['new', 'processing', 'done'];
 const STATUS_LABELS: Record<string, string> = { new: 'Новая', processing: 'В работе', done: 'Выполнена', returned: 'Завершена', rejected: 'Отклонена' };
@@ -76,6 +76,14 @@ interface AdminOrdersSectionProps {
   setConfirmRefundOrderId: (id: number | null) => void;
   confirmRefundSaving: boolean;
   handleConfirmRefund: (id: number) => void;
+  openAct: (order: Record<string, unknown>, kind: 'handover' | 'return') => void;
+  actOrderItem: Record<string, unknown> | null;
+  actKind: 'handover' | 'return';
+  actData: ActData | null;
+  setActData: (v: ActData | null) => void;
+  setActOrderItem: (v: Record<string, unknown> | null) => void;
+  actSaving: boolean;
+  handleActSave: () => void;
 }
 
 export default function AdminOrdersSection({
@@ -89,6 +97,7 @@ export default function AdminOrdersSection({
   token, openDepositFull, openDepositPartial, depositOrderItem, setDepositOrderItem,
   depositMode, depositResolution, setDepositResolution, depositSaving, handleDepositSave,
   confirmRefundOrderId, setConfirmRefundOrderId, confirmRefundSaving, handleConfirmRefund,
+  openAct, actOrderItem, actKind, actData, setActData, setActOrderItem, actSaving, handleActSave,
 }: AdminOrdersSectionProps) {
   const [evidenceUploading, setEvidenceUploading] = useState<number | null>(null);
 
@@ -297,6 +306,38 @@ export default function AdminOrdersSection({
                   )}
                 </div>
               ) : null}
+              {(order.handoverActUrl || order.returnActUrl || status === 'done' || status === 'returned') && (
+                <div className="mt-3 pt-3 border-t border-border flex flex-wrap gap-2">
+                  {(order.handoverActUrl || status === 'done') && (
+                    <>
+                      {order.handoverActUrl && (
+                        <a href={order.handoverActUrl as string} target="_blank" rel="noreferrer"
+                          className="font-body text-xs px-3 py-1.5 border border-border text-muted-foreground hover:border-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
+                          <Icon name="FileText" size={13} /> Акт приёма-передачи
+                        </a>
+                      )}
+                      <button onClick={() => openAct(order, 'handover')}
+                        className="font-body text-xs px-3 py-1.5 border border-border text-muted-foreground hover:border-accent hover:text-accent transition-colors flex items-center gap-1.5">
+                        <Icon name="Pencil" size={13} /> {order.handoverActUrl ? 'Изменить акт выдачи' : 'Сформировать акт выдачи'}
+                      </button>
+                    </>
+                  )}
+                  {(order.returnActUrl || status === 'returned') && (
+                    <>
+                      {order.returnActUrl && (
+                        <a href={order.returnActUrl as string} target="_blank" rel="noreferrer"
+                          className="font-body text-xs px-3 py-1.5 border border-border text-muted-foreground hover:border-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
+                          <Icon name="FileText" size={13} /> Акт возврата
+                        </a>
+                      )}
+                      <button onClick={() => openAct(order, 'return')}
+                        className="font-body text-xs px-3 py-1.5 border border-border text-muted-foreground hover:border-accent hover:text-accent transition-colors flex items-center gap-1.5">
+                        <Icon name="Pencil" size={13} /> {order.returnActUrl ? 'Изменить акт возврата' : 'Сформировать акт возврата'}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
@@ -547,6 +588,117 @@ export default function AdminOrdersSection({
                 {confirmRefundSaving ? 'Сохраняем...' : 'Да, возврат выполнен'}
               </Button>
               <Button variant="outline" onClick={() => setConfirmRefundOrderId(null)} className="flex-1 rounded-none font-body">Отмена</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* МОДАЛКА РЕДАКТИРОВАНИЯ АКТА ПРИЁМА-ПЕРЕДАЧИ / ВОЗВРАТА */}
+      {actOrderItem && actData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-background border border-border w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <h3 className="font-display font-bold text-xl">
+                {actKind === 'handover' ? 'Акт приёма-передачи' : 'Акт возврата'} — заявка №{actOrderItem.id as number}
+              </h3>
+              <button onClick={() => { setActOrderItem(null); setActData(null); }} className="text-muted-foreground hover:text-foreground"><Icon name="X" size={20} /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">Представитель арендодателя</label>
+                  <Input value={actData.representativeName} onChange={(e) => setActData({ ...actData, representativeName: e.target.value })} placeholder="ФИО менеджера" className="rounded-none font-body" />
+                </div>
+                <div>
+                  <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">ФИО клиента</label>
+                  <Input value={actData.clientFullName} onChange={(e) => setActData({ ...actData, clientFullName: e.target.value })} className="rounded-none font-body" />
+                </div>
+              </div>
+              <div>
+                <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">Паспортные данные клиента</label>
+                <Input value={actData.clientPassport} onChange={(e) => setActData({ ...actData, clientPassport: e.target.value })} placeholder="серия, номер, кем выдан" className="rounded-none font-body" />
+              </div>
+
+              <div>
+                <div className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-2">Состав инструмента</div>
+                <div className="space-y-2">
+                  {actData.items.map((it, i) => (
+                    <div key={i} className="border border-border p-3 grid grid-cols-[1fr_auto] gap-2 items-start">
+                      <div className="font-body text-sm font-medium pt-2">{it.name} <span className="text-muted-foreground">× {it.qty}</span></div>
+                      <div className="flex gap-2 flex-wrap justify-end">
+                        <Input
+                          value={it.inventoryNumber || ''}
+                          onChange={(e) => {
+                            const next = [...actData.items];
+                            next[i] = { ...next[i], inventoryNumber: e.target.value };
+                            setActData({ ...actData, items: next });
+                          }}
+                          placeholder="Инв. номер"
+                          className="rounded-none font-body text-sm w-32"
+                        />
+                        <Input
+                          value={it.state}
+                          onChange={(e) => {
+                            const next = [...actData.items];
+                            next[i] = { ...next[i], state: e.target.value };
+                            setActData({ ...actData, items: next });
+                          }}
+                          placeholder="Состояние"
+                          className="rounded-none font-body text-sm w-56"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  {actData.items.length === 0 && <p className="font-body text-sm text-muted-foreground">В заявке нет позиций</p>}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">Сумма залога, ₽</label>
+                  <Input type="number" value={actData.depositTotal} onChange={(e) => setActData({ ...actData, depositTotal: parseInt(e.target.value) || 0 })} className="rounded-none font-body" />
+                </div>
+                {actKind === 'return' && (
+                  <>
+                    <div>
+                      <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">Удержано, ₽</label>
+                      <Input type="number" value={actData.depositWithheld || 0} onChange={(e) => setActData({ ...actData, depositWithheld: parseInt(e.target.value) || 0 })} className="rounded-none font-body" />
+                    </div>
+                    <div>
+                      <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">Возвращено, ₽</label>
+                      <Input type="number" value={actData.depositReturned || 0} onChange={(e) => setActData({ ...actData, depositReturned: parseInt(e.target.value) || 0 })} className="rounded-none font-body" />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {actKind === 'return' && (
+                <div>
+                  <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">Выявленные повреждения (необязательно)</label>
+                  <textarea
+                    value={actData.damageNotes || ''}
+                    onChange={(e) => setActData({ ...actData, damageNotes: e.target.value })}
+                    rows={2}
+                    className="w-full rounded-none border border-input bg-background px-3 py-2 font-body text-sm resize-none"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">Примечания</label>
+                <textarea
+                  value={actData.notes}
+                  onChange={(e) => setActData({ ...actData, notes: e.target.value })}
+                  rows={2}
+                  className="w-full rounded-none border border-input bg-background px-3 py-2 font-body text-sm resize-none"
+                />
+              </div>
+            </div>
+            <div className="p-6 border-t border-border flex gap-3">
+              <Button onClick={handleActSave} disabled={actSaving} className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground rounded-none font-body">
+                {actSaving ? 'Формируем PDF...' : 'Сохранить и сформировать PDF'}
+              </Button>
+              <Button variant="outline" onClick={() => { setActOrderItem(null); setActData(null); }} className="rounded-none font-body">Отмена</Button>
             </div>
           </div>
         </div>

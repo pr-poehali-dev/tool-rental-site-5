@@ -177,6 +177,34 @@ export async function deleteOrder(token: string, id: number) {
   return res.json();
 }
 
+export interface ActItem {
+  name: string;
+  qty: number;
+  inventoryNumber?: string;
+  state: string;
+}
+
+export interface ActData {
+  representativeName: string;
+  clientFullName: string;
+  clientPassport: string;
+  items: ActItem[];
+  depositTotal: number;
+  depositWithheld?: number;
+  depositReturned?: number;
+  damageNotes?: string;
+  notes: string;
+}
+
+export async function updateAct(token: string, id: number, kind: 'handover' | 'return', data: ActData) {
+  const res = await fetch(ORDERS_URL, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+    body: JSON.stringify({ id, action: 'update_act', kind, data }),
+  });
+  return res.json();
+}
+
 export async function getPublicOrder(id: string) {
   const res = await fetch(`${ORDERS_URL}?public=1&id=${id}`);
   if (!res.ok) return null;
