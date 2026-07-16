@@ -74,6 +74,7 @@ export default function AdminCatalogSection({
                 <th className="w-8 p-4" />
                 <th className="text-left p-4 text-muted-foreground font-normal">Фото</th>
                 <th className="text-left p-4 text-muted-foreground font-normal">Название</th>
+                {tab === 'tools' && <th className="text-left p-4 text-muted-foreground font-normal">Инв. номер</th>}
                 <th className="text-left p-4 text-muted-foreground font-normal">Категория</th>
                 <th className="text-left p-4 text-muted-foreground font-normal">Цена</th>
                 {tab === 'tools' && <th className="text-left p-4 text-muted-foreground font-normal">Залог</th>}
@@ -105,6 +106,7 @@ export default function AdminCatalogSection({
                     <div className="truncate">{item.name as string}</div>
                     <div className="text-xs text-muted-foreground truncate">{item.specs as string}</div>
                   </td>
+                  {tab === 'tools' && <td className="p-4 text-muted-foreground font-mono text-xs">{(item.inventoryNumber as string) || '—'}</td>}
                   <td className="p-4 text-muted-foreground">{item.category as string}</td>
                   <td className="p-4 font-display font-semibold">{item.price as number} ₽</td>
                   {tab === 'tools' && <td className="p-4 text-muted-foreground">{(item.deposit as number) > 0 ? `${item.deposit as number} ₽` : '—'}</td>}
@@ -178,6 +180,12 @@ export default function AdminCatalogSection({
                 <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">Название</label>
                 <Input value={editItem.name as string || ''} onChange={(e) => setField('name', e.target.value)} className="rounded-none font-body" />
               </div>
+              {tab === 'tools' && (
+                <div>
+                  <label className="font-body text-xs text-muted-foreground uppercase tracking-widest mb-1 block">Инвентарный номер</label>
+                  <Input value={editItem.inventoryNumber as string || ''} onChange={(e) => setField('inventoryNumber', e.target.value)} placeholder="Введите вручную, напр. INV-0001" className="rounded-none font-body" />
+                </div>
+              )}
               {tab !== 'machines' && (
                 <>
                   <div className="grid grid-cols-2 gap-3">
