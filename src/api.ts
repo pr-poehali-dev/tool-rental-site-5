@@ -42,10 +42,25 @@ export interface AnalyticsSummary {
   totalOrders: number;
   conversionRate: number;
   daily: DailyAnalytics[];
+  granularity: 'day' | 'month';
+  availableYears: number[];
+  filter: { year: number | null; month: number | null };
 }
 
-export async function getAnalytics(token: string): Promise<AnalyticsSummary> {
-  const res = await fetch(ANALYTICS_URL, { headers: { 'X-Admin-Token': token } });
+export async function getAnalytics(token: string, year?: number, month?: number): Promise<AnalyticsSummary> {
+  const params = new URLSearchParams();
+  if (year) params.set('year', String(year));
+  if (month) params.set('month', String(month));
+  const qs = params.toString();
+  const res = await fetch(`${ANALYTICS_URL}${qs ? `?${qs}` : ''}`, { headers: { 'X-Admin-Token': token } });
+  return res.json();
+}
+
+export async function resetAnalytics(token: string) {
+  const res = await fetch(ANALYTICS_URL, {
+    method: 'DELETE',
+    headers: { 'X-Admin-Token': token },
+  });
   return res.json();
 }
 

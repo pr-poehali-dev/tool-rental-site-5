@@ -9,7 +9,7 @@ import {
   resolveDeposit, confirmDepositRefund, DepositResolutionItem,
   getLegalDocuments, LegalDocument,
   updateAct, ActData,
-  getAnalytics, AnalyticsSummary,
+  getAnalytics, resetAnalytics, AnalyticsSummary,
 } from '@/api';
 import AdminLoginScreen from '@/components/admin/AdminLoginScreen';
 import AdminCatalogSection from '@/components/admin/AdminCatalogSection';
@@ -123,6 +123,10 @@ export default function Admin() {
   // Аналитика посещаемости
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsYear, setAnalyticsYear] = useState<number | undefined>(undefined);
+  const [analyticsMonth, setAnalyticsMonth] = useState<number | undefined>(undefined);
+  const [analyticsResetting, setAnalyticsResetting] = useState(false);
+  const [confirmResetAnalytics, setConfirmResetAnalytics] = useState(false);
 
   // Проверка токена при загрузке
   useEffect(() => {
@@ -145,7 +149,7 @@ export default function Admin() {
 
     if (tab === 'analytics') {
       setAnalyticsLoading(true);
-      getAnalytics(token).then((d) => {
+      getAnalytics(token, analyticsYear, analyticsMonth).then((d) => {
         setAnalytics(d);
         setAnalyticsLoading(false);
       }).catch(() => setAnalyticsLoading(false));
@@ -163,7 +167,7 @@ export default function Admin() {
       setData((prev) => ({ ...prev, [tab]: Array.isArray(d) ? d : [] }));
       setDataLoading(false);
     }).catch(() => setDataLoading(false));
-  }, [tab, authed, showArchived]);
+  }, [tab, authed, showArchived, analyticsYear, analyticsMonth]);
 
   const handleLogin = async () => {
     setAuthLoading(true);
@@ -340,6 +344,15 @@ export default function Admin() {
     setActData(null);
     const updated = await getOrders(token, showArchived);
     setData((prev) => ({ ...prev, orders: Array.isArray(updated) ? updated : [] }));
+  };
+
+  const handleResetAnalytics = async () => {
+    setAnalyticsResetting(true);
+    await resetAnalytics(token);
+    const updated = await getAnalytics(token, analyticsYear, analyticsMonth);
+    setAnalytics(updated);
+    setAnalyticsResetting(false);
+    setConfirmResetAnalytics(false);
   };
 
   const handleSelectClient = async (client: Client) => {
@@ -560,7 +573,19 @@ export default function Admin() {
             )}
 
             {tab === 'analytics' && (
-              <AdminAnalyticsSection analytics={analytics} loading={analyticsLoading} />
+              <AdminAnalyticsSection
+                analytics={analytics}
+                loading={analyticsLoading}
+                year={analyticsYear}
+                setYear={setAnalyticsYear}
+                month={analyticsMonth}
+                setMonth={setAnalyticsMonth}
+                onReset={() => setConfirmResetAnalytics(true)}
+                confirmReset={confirmResetAnalytics}
+                setConfirmReset={setConfirmResetAnalytics}
+                resetting={analyticsResetting}
+                handleReset={handleResetAnalytics}
+              />
             )}
           </>
         )}
