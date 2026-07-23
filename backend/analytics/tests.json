@@ -1,0 +1,19 @@
+{
+  "tests": [
+    {
+      "name": "Record visit",
+      "method": "POST",
+      "path": "/",
+      "body": {"sessionId": "test-session-123", "path": "/"},
+      "expectedStatus": 201,
+      "expectedBody": {"ok": true},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Unauthorized stats request",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 401
+    }
+  ]
+}

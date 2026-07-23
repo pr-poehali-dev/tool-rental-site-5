@@ -4,7 +4,7 @@ import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { getCatalog, submitOrder } from '@/api';
+import { getCatalog, submitOrder, trackVisit } from '@/api';
 import ImageSlider from '@/components/ImageSlider';
 import MachineAnimation from '@/components/MachineAnimation';
 import SiteFooter from '@/components/layout/SiteFooter';
@@ -158,6 +158,7 @@ export default function Index() {
       setReviews(data.reviews || []);
       setLoading(false);
     }).catch(() => setLoading(false));
+    trackVisit('/');
   }, []);
 
   const filtered = useMemo(() => {

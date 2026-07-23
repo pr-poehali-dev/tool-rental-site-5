@@ -9,14 +9,16 @@ import {
   resolveDeposit, confirmDepositRefund, DepositResolutionItem,
   getLegalDocuments, LegalDocument,
   updateAct, ActData,
+  getAnalytics, AnalyticsSummary,
 } from '@/api';
 import AdminLoginScreen from '@/components/admin/AdminLoginScreen';
 import AdminCatalogSection from '@/components/admin/AdminCatalogSection';
 import AdminOrdersSection from '@/components/admin/AdminOrdersSection';
 import AdminClientsSection from '@/components/admin/AdminClientsSection';
 import AdminLegalDocsSection from '@/components/admin/AdminLegalDocsSection';
+import AdminAnalyticsSection from '@/components/admin/AdminAnalyticsSection';
 
-type Tab = 'tools' | 'parts' | 'machines' | 'orders' | 'clients' | 'legal';
+type Tab = 'tools' | 'parts' | 'machines' | 'orders' | 'clients' | 'legal' | 'analytics';
 
 function emptyTool() {
   return { name: '', category: 'Электроинструмент', price: 0, image: '', stock: 0, totalStock: 0, specs: '', toolType: '', material: [] as string[], active: true, deposit: 0, manualPdfUrl: '', manualVideoUrl: '' };
@@ -118,6 +120,10 @@ export default function Admin() {
   const [editClient, setEditClient] = useState<Client | null>(null);
   const [clientSearch, setClientSearch] = useState('');
 
+  // Аналитика посещаемости
+  const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
   // Проверка токена при загрузке
   useEffect(() => {
     if (token) {
@@ -134,10 +140,19 @@ export default function Admin() {
   // Загрузка данных при смене вкладки
   useEffect(() => {
     if (!authed) return;
-    setDataLoading(true);
     setSelectedClient(null);
     setClientOrders([]);
 
+    if (tab === 'analytics') {
+      setAnalyticsLoading(true);
+      getAnalytics(token).then((d) => {
+        setAnalytics(d);
+        setAnalyticsLoading(false);
+      }).catch(() => setAnalyticsLoading(false));
+      return;
+    }
+
+    setDataLoading(true);
     let loader: Promise<unknown[]>;
     if (tab === 'orders') loader = getOrders(token, showArchived);
     else if (tab === 'clients') loader = getClients(token);
@@ -388,7 +403,7 @@ export default function Admin() {
     );
   }
 
-  const items = tab !== 'clients' && tab !== 'legal' ? data[tab] as Record<string, unknown>[] : [];
+  const items = tab !== 'clients' && tab !== 'legal' && tab !== 'analytics' ? data[tab] as Record<string, unknown>[] : [];
   const newOrdersCount = (data.orders as Record<string, unknown>[]).filter((o) => o.status === 'new').length;
 
   return (
@@ -423,6 +438,7 @@ export default function Admin() {
             ['orders', 'Заявки', 'ClipboardList'],
             ['clients', 'Клиенты', 'Users'],
             ['legal', 'Условия аренды', 'FileText'],
+            ['analytics', 'Аналитика', 'BarChart3'],
           ] as [Tab, string, string][]).map(([key, label, icon]) => (
             <button key={key} onClick={() => setTab(key)}
               className={`flex items-center gap-2 px-4 py-2 font-body text-sm transition-colors ${tab === key ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}>
@@ -541,6 +557,10 @@ export default function Admin() {
                 token={token}
                 onChange={refreshTabData}
               />
+            )}
+
+            {tab === 'analytics' && (
+              <AdminAnalyticsSection analytics={analytics} loading={analyticsLoading} />
             )}
           </>
         )}

@@ -6,9 +6,46 @@ const CLIENTS_URL = 'https://functions.poehali.dev/83e99fc4-f512-4980-9255-d1695
 const CLIENT_AUTH_URL = 'https://functions.poehali.dev/ba20e787-2790-4d8a-a823-87650d2d4bdb';
 const CLIENT_ACCOUNT_URL = 'https://functions.poehali.dev/6e6b2653-d8e8-4d32-bf0b-b192ab6a89a3';
 const YOOKASSA_URL = 'https://functions.poehali.dev/9a33e6a2-8e6d-4610-bb35-92e7daafb7cc';
+const ANALYTICS_URL = 'https://functions.poehali.dev/7325a1da-51d9-488d-8b0b-b7274210aa4b';
 
 export async function getCatalog() {
   const res = await fetch(CATALOG_URL);
+  return res.json();
+}
+
+export function trackVisit(path: string) {
+  try {
+    let sessionId = sessionStorage.getItem('visit_session_id');
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      sessionStorage.setItem('visit_session_id', sessionId);
+    }
+    fetch(ANALYTICS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, path }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch { /* ignore */ }
+}
+
+export interface DailyAnalytics {
+  date: string;
+  visits: number;
+  uniqueVisitors: number;
+  orders: number;
+}
+
+export interface AnalyticsSummary {
+  totalVisits: number;
+  uniqueVisitors: number;
+  totalOrders: number;
+  conversionRate: number;
+  daily: DailyAnalytics[];
+}
+
+export async function getAnalytics(token: string): Promise<AnalyticsSummary> {
+  const res = await fetch(ANALYTICS_URL, { headers: { 'X-Admin-Token': token } });
   return res.json();
 }
 
